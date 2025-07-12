@@ -1,0 +1,2779 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة طرح الأراضي - لوحة التحكم</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Cairo', sans-serif; scroll-behavior: smooth; }
+        .menu-item.active {
+            background-color: #eef2ff;
+            color: #4f46e5;
+            border-right: 4px solid #4f46e5;
+        }
+        .menu-item.active svg { color: #4f46e5; }
+        .menu-sub-item.active {
+            background-color: #eef2ff;
+            color: #4f46e5;
+        }
+        .required:after { content: ' *'; color: #ef4444; } /* red-500 */
+        .file-input-label { cursor: pointer; }
+        .file-input-label:hover { background-color: #f3f4f6; }
+        /* Custom animation for sections */
+        @keyframes slide-down {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animated-section {
+            animation: slide-down 0.4s ease-out;
+        }
+        .modal-overlay {
+            animation: fade-in 0.3s ease-out;
+        }
+        @keyframes fade-in {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        /* Tooltip styles */
+        .tooltip-container {
+            position: relative;
+            display: inline-block;
+        }
+        .tooltip-icon {
+            color: #6B7280; /* Gray-500 */
+            cursor: pointer;
+            margin-right: 4px;
+        }
+        .tooltip-content {
+            visibility: hidden;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 8px 12px;
+            position: absolute;
+            z-index: 10;
+            bottom: 125%; /* Position above the icon */
+            right: 50%;
+            transform: translateX(50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            min-width: 200px;
+            font-size: 0.875rem; /* text-sm */
+            line-height: 1.25rem; /* leading-tight */
+            white-space: normal; /* Allow text wrapping */
+        }
+        .tooltip-content::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            right: 50%;
+            transform: translateX(50%);
+            border-width: 5px;
+            border-style: solid;
+            border-color: #333 transparent transparent transparent;
+        }
+        .tooltip-container:hover .tooltip-content {
+            visibility: visible;
+            opacity: 1;
+        }
+        .mechanism-label {
+            background-color: #f3f4f6;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-weight: 600;
+            color: #374151;
+            text-align: center;
+        }
+        .requests-tab-button.active {
+            border-color: #4f46e5;
+            color: #4f46e5;
+            background-color: #eef2ff;
+        }
+        /* Workflow Timeline Styles */
+        .workflow-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 1rem 0;
+        }
+        .workflow-step {
+            text-align: center;
+            flex: 1;
+            position: relative;
+        }
+        .workflow-step .workflow-circle {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            margin: 0 auto 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+            transition: background-color 0.3s, border-color 0.3s;
+            border: 2px solid transparent;
+        }
+        .workflow-step .workflow-label {
+            font-size: 12px;
+            color: #6b7280;
+            transition: color 0.3s;
+        }
+        .workflow-step .workflow-line {
+            position: absolute;
+            top: 12px;
+            right: 50%;
+            width: 100%;
+            height: 2px;
+            background-color: #e5e7eb; /* gray-200 */
+            z-index: -1;
+            transition: background-color 0.3s;
+        }
+        .workflow-step:first-child .workflow-line {
+            width: 50%;
+        }
+        .workflow-step:last-child .workflow-line {
+            width: 50%;
+            right: auto;
+            left: 0;
+        }
+
+        /* Step Statuses */
+        .workflow-step.completed .workflow-circle { background-color: #10b981; border-color: #10b981; }
+        .workflow-step.completed .workflow-label { color: #059669; }
+        .workflow-step.completed .workflow-line { background-color: #10b981; }
+
+        .workflow-step.active .workflow-circle { background-color: #3b82f6; border-color: #3b82f6; }
+        .workflow-step.active .workflow-label { color: #1d4ed8; font-weight: bold; }
+        .workflow-step.active ~ .workflow-step .workflow-line { background-color: #e5e7eb; }
+        
+        .workflow-step.pending .workflow-circle { background-color: #d1d5db; border-color: #d1d5db; }
+        .workflow-step.pending .workflow-label { color: #6b7280; }
+        
+        .workflow-step.rejected .workflow-circle { background-color: #ef4444; border-color: #ef4444; }
+        .workflow-step.rejected .workflow-label { color: #b91c1c; font-weight: bold; }
+        .workflow-step.rejected ~ .workflow-step .workflow-circle { background-color: #d1d5db; border-color: #d1d5db; }
+        .workflow-step.rejected ~ .workflow-step .workflow-label { color: #6b7280; font-weight: normal; }
+        .workflow-step.rejected ~ .workflow-step .workflow-line { background-color: #e5e7eb; }
+
+        /* Toast Notification */
+        @keyframes slide-in-down {
+            from { transform: translateY(-100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes slide-out-up {
+            from { transform: translateY(0); opacity: 1; }
+            to { transform: translateY(-100%); opacity: 0; }
+        }
+        .toast {
+            position: fixed;
+            top: 1.25rem;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            animation: slide-in-down 0.5s ease-out forwards;
+        }
+        .toast.hide {
+            animation: slide-out-up 0.5s ease-in forwards;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <div class="flex h-screen bg-white">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-white border-l border-gray-200 flex flex-col flex-shrink-0">
+             <div class="h-16 flex items-center justify-center px-4 border-b border-gray-200">
+                <h1 class="text-xl font-bold text-gray-800">لوحة التحكم</h1>
+            </div>
+            <nav class="flex-1 overflow-y-auto pt-4">
+                 <ul class="space-y-1">
+                     <li class="px-4">
+                        <a href="#" id="sidebar-offerings-link" class="flex items-center p-2 text-gray-700 font-semibold rounded-lg group menu-item">
+                            <div class="flex items-center">
+                               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                <span class="mr-3">طرح الأراضي</span>
+                            </div>
+                        </a>
+                    </li>
+                    <li class="px-4">
+                        <a href="#" id="sidebar-requests-link" class="flex items-center p-2 text-gray-600 rounded-lg hover:bg-gray-100 group menu-item">
+                            <svg class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                            <span class="mr-3">طلبات الأراضي</span>
+                        </a>
+                    </li>
+                    <li class="px-4">
+                        <button type="button" id="sidebar-accounts-toggle" class="flex items-center justify-between w-full p-2 text-gray-600 rounded-lg group hover:bg-gray-100 menu-item active">
+                            <span class="flex items-center">
+                                <svg class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                                <span class="mr-3">الحسابات</span>
+                            </span>
+                            <svg id="sidebar-accounts-arrow" class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <ul id="sidebar-accounts-submenu" class="pt-2 space-y-2">
+                            <li>
+                                <a href="#" data-view="customer-accounts-view" class="flex items-center p-2 pl-11 w-full text-sm text-gray-600 rounded-lg hover:bg-gray-100 group menu-sub-item active">حسابات العملاء</a>
+                            </li>
+                            <li>
+                                <a href="#" data-view="overdue-invoices-view" class="flex items-center p-2 pl-11 w-full text-sm text-gray-600 rounded-lg hover:bg-gray-100 group menu-sub-item">الفواتير المتأخرة</a>
+                            </li>
+                            <li>
+                                <a href="#" data-view="due-today-invoices-view" class="flex items-center p-2 pl-11 w-full text-sm text-gray-600 rounded-lg hover:bg-gray-100 group menu-sub-item">الفواتير المستحقة اليوم</a>
+                            </li>
+                            <li>
+                                <a href="#" data-view="collected-revenues-view" class="flex items-center p-2 pl-11 w-full text-sm text-gray-600 rounded-lg hover:bg-gray-100 group menu-sub-item">الايرادات المحصلة</a>
+                            </li>
+                        </ul>
+                    </li>
+                     <li class="px-4">
+                        <a href="#" id="sidebar-parameters-link" class="flex items-center p-2 text-gray-600 rounded-lg hover:bg-gray-100 group menu-item">
+                           <svg class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                            <span class="mr-3">المحددات</span>
+                        </a>
+                    </li>
+                 </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 p-6 sm:p-8 md:p-10 bg-gray-100 overflow-y-auto">
+
+            <div id="view-container">
+                <!-- List View: Displays all land offerings -->
+                <div id="list-view" class="hidden">
+                    <header class="flex items-center justify-between pb-4 border-b">
+                        <div>
+                             <h2 class="text-2xl font-bold text-gray-800">قائمة الطروحات</h2>
+                             <p class="text-sm text-gray-500">عرض جميع طروحات الأراضي المسجلة.</p>
+                        </div>
+                        <button id="show-form-btn" class="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                            إضافة طرح جديد
+                        </button>
+                    </header>
+                    
+                    <div class="mt-8 overflow-x-auto">
+                        <table class="min-w-full bg-white rounded-lg shadow overflow-hidden">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">عدد الأراضي</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">آلية التعامل</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">تاريخ الإنشاء</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">المستخدم</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الوقت المتبقي</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الحالة</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="offerings-table-body" class="divide-y divide-gray-200">
+                                <!-- Rows will be dynamically inserted here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Form View: For adding or editing a land offering -->
+                <div id="form-view" class="hidden">
+                     <header class="flex items-center justify-between pb-4 border-b">
+                        <div>
+                             <h2 class="text-2xl font-bold text-gray-800" id="form-title">إضافة طرح جديد</h2>
+                             <p class="text-sm text-gray-500" id="form-subtitle">إضافة طرح أراضي جديد سواء بالأمر المباشر, مزاد علني أو مبادرة.</p>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <button id="view-history-btn" class="hidden flex items-center px-4 py-2 bg-white text-gray-700 rounded-lg border hover:bg-gray-100">
+                                <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                عرض سجل التعديلات
+                            </button>
+                            <button id="back-to-list-btn" class="flex items-center px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">
+                                <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+                                العودة إلى القائمة
+                            </button>
+                        </div>
+                    </header>
+                     <form id="land-offering-form" class="mt-8 space-y-8">
+                          <div class="bg-white p-6 sm:p-8 rounded-xl shadow-md">
+                            <h3 class="text-lg font-semibold text-gray-800 border-b pb-3 mb-6">بيانات الطرح الأساسية</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label for="mechanism-type" class="block mb-2 text-sm font-medium text-gray-700 required">آلية الطرح</label>
+                                    <select id="mechanism-type" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" required>
+                                        <option value="" selected disabled>-- اختر الآلية --</option>
+                                        <option value="auction">مزاد علني</option>
+                                        <option value="direct_order">أمر مباشر</option>
+                                        <option value="initiative">مبادرة</option>
+                                    </select>
+                                </div>
+                                 <div>
+                                    <label class="block mb-2 text-sm font-medium text-gray-700 required">عملة الطرح</label>
+                                    <div class="flex items-center space-x-4 space-x-reverse mt-2">
+                                        <div class="flex items-center">
+                                            <input id="currency-egp" name="currency" type="radio" value="EGP" class="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-500" checked>
+                                            <label for="currency-egp" class="ml-2 mr-2 block text-sm text-gray-900">جنيه مصري (EGP)</label>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <input id="currency-usd" name="currency" type="radio" value="USD" class="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                            <label for="currency-usd" class="ml-2 mr-2 block text-sm text-gray-900">دولار أمريكي (USD)</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Initiative Details Section -->
+                        <div id="initiative-details-container" class="bg-white p-6 sm:p-8 rounded-xl shadow-md hidden">
+                            <h3 class="text-lg font-semibold text-gray-800 border-b pb-3 mb-6">تفاصيل المبادرة</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label for="initiative-type-select" class="block mb-2 text-sm font-medium text-gray-700 required">اختر نوع المبادرة</label>
+                                    <select id="initiative-type-select" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                                        <!-- Initiative types will be populated here -->
+                                    </select>
+                                </div>
+                                <div id="initiative-conditions-display" class="p-4 bg-gray-100 rounded-lg text-sm text-gray-700 whitespace-pre-wrap hidden">
+                                    <!-- Initiative conditions will be displayed here -->
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Offered Lands Section -->
+                        <div class="bg-white p-6 sm:p-8 rounded-xl shadow-md">
+                            <div class="flex items-center justify-between border-b pb-3 mb-6">
+                                <h3 class="text-lg font-semibold text-gray-800">الأراضي المطروحة</h3>
+                            </div>
+                            <div id="offered-lands-container" class="space-y-6"></div>
+                            <div class="mt-6 flex justify-start">
+                                <button type="button" id="add-land-btn" class="flex items-center px-4 py-2 bg-green-500 text-white rounded-lg shadow-sm hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                                    <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                                    إضافة أرض أخرى
+                                </button>
+                            </div>
+                        </div>
+                         <div class="pt-6 flex items-center justify-end space-x-4 space-x-reverse">
+                            <button type="button" id="cancel-form-btn" class="py-2.5 px-6 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700">إلغاء</button>
+                            <button type="submit" id="save-form-btn" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-8 py-2.5 text-center">حفظ الطرح</button>
+                        </div>
+                     </form>
+                </div>
+                
+                <!-- Land Requests Summary View -->
+                <div id="land-requests-view" class="hidden">
+                    <header class="pb-4 border-b">
+                        <h2 class="text-2xl font-bold text-gray-800">طلبات الأراضي</h2>
+                        <p class="text-sm text-gray-500">عرض الأراضي التي تم تقديم طلبات عليها.</p>
+                    </header>
+                    <div id="requests-filter-tabs" class="flex border-b border-gray-200 mt-6">
+                        <button type="button" class="requests-tab-button px-6 py-2 text-sm font-medium text-gray-600 border-b-2 border-transparent hover:border-blue-500 hover:text-blue-600 focus:outline-none active" data-filter="all">الكل</button>
+                        <button type="button" class="requests-tab-button px-6 py-2 text-sm font-medium text-gray-600 border-b-2 border-transparent hover:border-blue-500 hover:text-blue-600 focus:outline-none" data-filter="auction">مزاد علني</button>
+                        <button type="button" class="requests-tab-button px-6 py-2 text-sm font-medium text-gray-600 border-b-2 border-transparent hover:border-blue-500 hover:text-blue-600 focus:outline-none" data-filter="direct_order">أمر مباشر</button>
+                        <button type="button" class="requests-tab-button px-6 py-2 text-sm font-medium text-gray-600 border-b-2 border-transparent hover:border-blue-500 hover:text-blue-600 focus:outline-none" data-filter="initiative">مبادرة</button>
+                    </div>
+                    <div class="mt-8 overflow-x-auto">
+                         <table class="min-w-full bg-white rounded-lg shadow overflow-hidden">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">رقم الأرض</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الموقع</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">آلية الطرح</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">عدد الطلبات</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="requests-summary-table-body" class="divide-y divide-gray-200">
+                                <!-- Rows will be dynamically inserted here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Requests for a Specific Land View -->
+                <div id="request-details-view" class="hidden">
+                    <header class="flex items-center justify-between pb-4 border-b">
+                        <h2 class="text-2xl font-bold text-gray-800">تفاصيل الطلبات للأرض رقم <span id="details-land-id"></span></h2>
+                        <button id="back-to-requests-list-btn" class="flex items-center px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">
+                           <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+                            العودة لقائمة الطلبات
+                        </button>
+                    </header>
+                    
+                    <div class="mt-8 bg-white p-6 sm:p-8 rounded-xl shadow-md">
+                        <h3 class="text-lg font-semibold text-gray-800 border-b pb-3 mb-6">بيانات الأرض</h3>
+                        <div id="request-land-details-card" class="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-4 text-sm">
+                            <!-- Land details will be populated here -->
+                        </div>
+                    </div>
+
+                     <div class="mt-8">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">الطلبات المقدمة</h3>
+                        <div class="overflow-x-auto">
+                           <table class="min-w-full bg-white rounded-lg shadow overflow-hidden">
+                               <thead class="bg-gray-50">
+                                   <tr>
+                                       <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">اسم مقدم الطلب</th>
+                                       <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">تاريخ الطلب</th>
+                                       <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الحالة</th>
+                                       <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الإجراءات</th>
+                                   </tr>
+                               </thead>
+                               <tbody id="requests-for-land-table-body" class="divide-y divide-gray-200">
+                                   <!-- Rows will be dynamically inserted here -->
+                               </tbody>
+                           </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Single Request Details View -->
+                <div id="single-request-details-view" class="hidden">
+                     <header class="flex items-center justify-between pb-4 border-b">
+                        <h2 class="text-2xl font-bold text-gray-800">تفاصيل الطلب</h2>
+                        <button id="back-to-request-list-for-land-btn" class="flex items-center px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">
+                           <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+                            العودة لطلبات الأرض
+                        </button>
+                    </header>
+                    <div class="mt-6 bg-white p-6 sm:p-8 rounded-xl shadow-md">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">مراحل سير عمل الطلب</h3>
+                        <div id="request-workflow-container" class="workflow-container">
+                            <!-- Workflow timeline will be rendered here -->
+                        </div>
+                    </div>
+                    <div class="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div class="lg:col-span-2 space-y-8">
+                            <div class="bg-white p-6 sm:p-8 rounded-xl shadow-md">
+                                <h3 class="text-lg font-semibold text-gray-800 border-b pb-3 mb-6">بيانات مقدم الطلب</h3>
+                                <div id="applicant-details-card" class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 text-sm">
+                                    <!-- Applicant details will be populated here -->
+                                </div>
+                            </div>
+                            <div class="bg-white p-6 sm:p-8 rounded-xl shadow-md">
+                                <h3 class="text-lg font-semibold text-gray-800 border-b pb-3 mb-6">المشروع المقترح</h3>
+                                <p id="proposed-project-text" class="text-sm text-gray-600 leading-relaxed"></p>
+                            </div>
+                             <div class="bg-white p-6 sm:p-8 rounded-xl shadow-md">
+                                <h3 class="text-lg font-semibold text-gray-800 border-b pb-3 mb-6">المرفقات</h3>
+                                <ul id="attachments-list" class="space-y-3">
+                                    <!-- Attachments will be listed here -->
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="lg:col-span-1 space-y-8">
+                             <div id="final-decision-container">
+                                 <!-- Final decision form will be injected here if applicable -->
+                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Parameters View -->
+                <div id="parameters-view" class="hidden">
+                     <header class="flex items-center justify-between pb-4 border-b">
+                        <div>
+                             <h2 class="text-2xl font-bold text-gray-800">المحددات</h2>
+                             <p class="text-sm text-gray-500">إدارة المحددات العامة لطرح الاراضي</p>
+                        </div>
+                        <button id="view-parameters-history-btn" class="flex items-center px-4 py-2 bg-white text-gray-700 rounded-lg border hover:bg-gray-100">
+                           <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            سجل تعديلات المحددات
+                        </button>
+                    </header>
+
+                    <div id="parameters-tab-container" class="flex border-b border-gray-200 mt-4 mb-8">
+                        <button type="button" class="tab-button px-4 py-2 text-sm font-medium text-gray-700 border-b-2 border-transparent hover:border-blue-500 hover:text-blue-600 focus:outline-none active-tab" data-tab="auction-params">محددات المزاد</button>
+                        <button type="button" class="tab-button px-4 py-2 text-sm font-medium text-gray-700 border-b-2 border-transparent hover:border-blue-500 hover:text-blue-600 focus:outline-none" data-tab="direct-order-params">محددات الأمر المباشر</button>
+                        <button type="button" class="tab-button px-4 py-2 text-sm font-medium text-gray-700 border-b-2 border-transparent hover:border-blue-500 hover:text-blue-600 focus:outline-none" data-tab="initiative-params">محددات المبادرة</button>
+                        <button type="button" class="tab-button px-4 py-2 text-sm font-medium text-gray-700 border-b-2 border-transparent hover:border-blue-500 hover:text-blue-600 focus:outline-none" data-tab="general-params">محددات عامة</button>
+                    </div>
+
+                     <form id="parameters-form" class="mt-8 space-y-8">
+                        <!-- Auction Parameters -->
+                        <div id="auction-params-content" class="hidden">
+                            <div class="bg-white p-6 sm:p-8 rounded-xl shadow-md">
+                                <h3 class="text-lg font-semibold text-gray-800 border-b pb-3 mb-6">محددات التأمين الابتدائي (للمزاد)</h3>
+                                <div class="overflow-x-auto">
+                                    <table class="min-w-full">
+                                        <thead class="bg-gray-50">
+                                            <tr>
+                                                <th class="px-4 py-2 text-right text-sm font-medium text-gray-600">اسم الشريحة</th>
+                                                <th class="px-4 py-2 text-right text-sm font-medium text-gray-600">من مساحة (فدان)</th>
+                                                <th class="px-4 py-2 text-right text-sm font-medium text-gray-600">إلى مساحة (فدان)</th>
+                                                <th class="px-4 py-2 text-right text-sm font-medium text-gray-600">قيمة التأمين (بالجنيه المصري)</th>
+                                                <th class="px-4 py-2 text-right text-sm font-medium text-gray-600"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="insurance-tiers-container">
+                                            <!-- Insurance tiers will be populated here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="mt-6 flex justify-start">
+                                    <button type="button" id="add-tier-btn" class="flex items-center px-4 py-2 bg-green-500 text-white rounded-lg shadow-sm hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                                    <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                                        إضافة شريحة جديدة
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-white p-6 sm:p-8 rounded-xl shadow-md">
+                                <div class="border-b pb-3 mb-6">
+                                    <h3 class="text-lg font-semibold text-gray-800">محددات تسعير كراسة الشروط (للمزاد)</h3>
+                                    <p class="text-xs text-gray-500 mt-1">يتم حساب سعر الكراسة الأساسي بناءً على قيمة التأمين الابتدائي.</p>
+                                </div>
+                                <div class="overflow-x-auto">
+                                    <table class="min-w-full">
+                                        <thead class="bg-gray-50">
+                                            <tr>
+                                                <th class="px-4 py-2 text-right text-sm font-medium text-gray-600">اسم الشريحة</th>
+                                                <th class="px-4 py-2 text-right text-sm font-medium text-gray-600">من قيمة تأمين (جنيه)</th>
+                                                <th class="px-4 py-2 text-right text-sm font-medium text-gray-600">إلى قيمة تأمين (جنيه)</th>
+                                                <th class="px-4 py-2 text-right text-sm font-medium text-gray-600">سعر الكراسة (جنيه)</th>
+                                                <th class="px-4 py-2 text-right text-sm font-medium text-gray-600"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="brochure-tiers-container">
+                                            <!-- Brochure pricing tiers will be populated here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="mt-6 flex justify-start">
+                                    <button type="button" id="add-brochure-tier-btn" class="flex items-center px-4 py-2 bg-green-500 text-white rounded-lg shadow-sm hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                                    <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                                        إضافة شريحة تسعير
+                                    </button>
+                                </div>
+                                <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t">
+                                    <div>
+                                        <label for="param-vat" class="block mb-2 text-sm font-medium text-gray-700">القيمة المضافة (%)</label>
+                                        <input type="number" step="0.1" id="param-vat" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5">
+                                    </div>
+                                    <div>
+                                        <label for="param-stamp" class="block mb-2 text-sm font-medium text-gray-700">قيمة طابع الشهيد</label>
+                                        <input type="number" step="0.01" id="param-stamp" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5">
+                                    </div>
+                                    <div>
+                                        <label for="param-support" class="block mb-2 text-sm font-medium text-gray-700">قيمة إعانة الإعاقة</label>
+                                        <input type="number" step="0.01" id="param-support" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5">
+                                    </div>
+                                </div>
+                            </div>
+
+                             <div id="final-insurance-card" class="bg-white p-6 sm:p-8 rounded-xl shadow-md">
+                                <h3 class="text-lg font-semibold text-gray-800 border-b pb-3 mb-6">التأمين النهائي (للمزاد)</h3>
+                                <p class="text-sm text-gray-500 mb-4">
+                                    يتم دفع هذا التأمين بعد رسو المزاد على المستثمر.
+                                </p>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <div>
+                                        <label for="final-insurance-percentage-y1" class="block mb-2 text-sm font-medium text-gray-700">نسبة التأمين (السنة 1) (%)</label>
+                                        <input type="number" id="final-insurance-percentage-y1" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" placeholder="10">
+                                    </div>
+                                    <div>
+                                        <label for="final-insurance-percentage-y2" class="block mb-2 text-sm font-medium text-gray-700">نسبة التأمين (السنة 2) (%)</label>
+                                        <input type="number" id="final-insurance-percentage-y2" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" placeholder="15">
+                                    </div>
+                                    <div>
+                                        <label for="final-insurance-percentage-y3" class="block mb-2 text-sm font-medium text-gray-700">نسبة التأمين (السنة 3) (%)</label>
+                                        <input type="number" id="final-insurance-percentage-y3" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" placeholder="20">
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
+                                     <div>
+                                        <label for="final-insurance-years" class="block mb-2 text-sm font-medium text-gray-700">عدد سنوات حساب مقابل الانتفاع</label>
+                                        <input type="number" id="final-insurance-years" class="bg-gray-200 border-gray-300 text-sm rounded-lg block w-full p-2.5" value="3" readonly>
+                                    </div>
+                                    <div>
+                                        <label for="final-insurance-deadline-days" class="block mb-2 text-sm font-medium text-gray-700">مهلة السداد (بالأيام)</label>
+                                        <input type="number" id="final-insurance-deadline-days" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" placeholder="60">
+                                    </div>
+                                </div>
+                                <p class="text-xs text-red-600 mt-4">
+                                    <span class="font-bold">ملاحظة هامة:</span> في حالة عدم السداد خلال المهلة المحددة، يتم إلغاء التخصيص ومصادرة التأمين الابتدائي.
+                                </p>
+                                <div id="insurance-difference-example-container"></div>
+                            </div>
+                        </div>
+
+                        <!-- Direct Order Parameters -->
+                        <div id="direct-order-params-content" class="space-y-8 hidden">
+                           <div class="bg-white p-6 sm:p-8 rounded-xl shadow-md">
+                                <h3 class="text-lg font-semibold text-gray-800 border-b pb-3 mb-6">قواعد سداد الأمر المباشر</h3>
+                                <p class="text-sm text-gray-500 mb-4">
+                                    هذه هي الشروط التي تطبق في حال طلب المستثمر سداد قيمة التأمين على أقساط.
+                                </p>
+                                <div class="space-y-4 pt-4 border-t">
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                        <div>
+                                            <label for="direct-order-downpayment" class="block mb-2 text-sm font-medium text-gray-700">نسبة الدفعة المقدمة (%)</label>
+                                            <input type="number" id="direct-order-downpayment" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" value="50">
+                                        </div>
+                                        <div>
+                                            <label for="direct-order-grace-period" class="block mb-2 text-sm font-medium text-gray-700">فترة سماح للسداد (شهور)</label>
+                                            <input type="number" id="direct-order-grace-period" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" value="6">
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block mb-2 text-sm font-medium text-gray-700">أنواع الضمانات المطلوبة</label>
+                                        <div class="flex items-center space-x-6 space-x-reverse">
+                                            <div class="flex items-center">
+                                                <input id="guarantee-check" name="direct-order-guarantee" type="checkbox" value="bank_check" class="h-4 w-4 border-gray-300 rounded text-indigo-600 focus:ring-indigo-500">
+                                                <label for="guarantee-check" class="ml-2 mr-2 block text-sm text-gray-900">شيك بنكي</label>
+                                            </div>
+                                            <div class="flex items-center">
+                                                <input id="guarantee-letter" name="direct-order-guarantee" type="checkbox" value="guarantee_letter" class="h-4 w-4 border-gray-300 rounded text-indigo-600 focus:ring-indigo-500">
+                                                <label for="guarantee-letter" class="ml-2 mr-2 block text-sm text-gray-900">خطاب ضمان</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Initiative Parameters -->
+                        <div id="initiative-params-content" class="space-y-8 hidden">
+                           <div class="bg-white p-6 sm:p-8 rounded-xl shadow-md">
+                                <h3 class="text-lg font-semibold text-gray-800 border-b pb-3 mb-6">تعريف المبادرات</h3>
+                                <div class="overflow-x-auto">
+                                    <table class="min-w-full">
+                                        <thead class="bg-gray-50">
+                                            <tr>
+                                                <th class="px-4 py-2 text-right text-sm font-medium text-gray-600 w-1/3">اسم المبادرة</th>
+                                                <th class="px-4 py-2 text-right text-sm font-medium text-gray-600 w-2/3">الشروط والأحكام</th>
+                                                <th class="px-4 py-2 text-right text-sm font-medium text-gray-600"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="initiative-definitions-container">
+                                            <!-- Initiative definitions will be populated here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="mt-6 flex justify-start">
+                                    <button type="button" id="add-initiative-btn" class="flex items-center px-4 py-2 bg-green-500 text-white rounded-lg shadow-sm hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                                        <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                                        إضافة مبادرة جديدة
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <!-- General Parameters -->
+                        <div id="general-params-content" class="space-y-8 hidden">
+                            <div class="bg-white p-6 sm:p-8 rounded-xl shadow-md">
+                                <h3 class="text-lg font-semibold text-gray-800 border-b pb-3 mb-6">نسبة الزيادة السنوية وتوزيعها (لكل آلية)</h3>
+                                <div class="overflow-x-auto">
+                                    <table class="min-w-full text-sm">
+                                        <thead class="bg-gray-50">
+                                            <tr>
+                                                <th class="px-4 py-2 text-right font-medium text-gray-600 w-1/6">الآلية</th>
+                                                <th class="px-4 py-2 text-right font-medium text-gray-600">النسبة الإجمالية (%)</th>
+                                                <th class="px-4 py-2 text-right font-medium text-gray-600">التعليم (%)</th>
+                                                <th class="px-4 py-2 text-right font-medium text-gray-600">الصحة (%)</th>
+                                                <th class="px-4 py-2 text-right font-medium text-gray-600">مؤسسة التكافل (%)</th>
+                                                <th class="px-4 py-2 text-right font-medium text-gray-600">مركز حسن حلمي (%)</th>
+                                                <th class="px-4 py-2 text-right font-medium text-gray-600">المجموع (%)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="general-annual-increase-container">
+                                            <!-- Annual increase rows will be populated here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-white p-6 sm:p-8 rounded-xl shadow-md">
+                                <h3 class="text-lg font-semibold text-gray-800 border-b pb-3 mb-6">فترة الإعفاء عن القيمة الايجارية (لكل آلية)</h3>
+                                <div class="overflow-x-auto">
+                                    <table class="min-w-full text-sm">
+                                        <thead class="bg-gray-50">
+                                            <tr>
+                                                <th class="px-4 py-2 text-right font-medium text-gray-600 w-1/4">الآلية</th>
+                                                <th class="px-4 py-2 text-right font-medium text-gray-600">فترة الإعفاء (سنين)</th>
+                                                <th class="px-4 py-2 text-right font-medium text-gray-600">فترة الإعفاء (شهور)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="general-grace-period-container">
+                                            <!-- Grace period rows will be populated here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <div class="bg-white p-6 sm:p-8 rounded-xl shadow-md">
+                                <h3 class="text-lg font-semibold text-gray-800 border-b pb-3 mb-6">محددات غرامات التأخير (تسري على الجميع)</h3>
+                                <div class="space-y-4">
+                                    <p class="text-sm font-medium text-gray-700">
+                                        يتم حسابها آليًا وفقًا للمعادلة:
+                                        <span class="font-bold block mt-2 p-2 bg-blue-50 text-blue-800 rounded-md text-center">
+                                            الغرامة = (المبلغ المستحق &times; سعر الفائدة &times; عدد أيام التأخير) &divide; 365
+                                        </span>
+                                    </p>
+                                    <div>
+                                        <label for="general-interest-rate" class="block mb-2 text-sm font-medium text-gray-700">
+                                            <div class="flex items-center">
+                                                <span>سعر الفائدة (%)</span>
+                                                <div class="tooltip-container mr-1">
+                                                    <svg class="w-4 h-4 tooltip-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                                    <span class="tooltip-content">
+                                                        يمكن استدعاء سعر الفائدة من سعر البنك المركزي أو إدخاله يدويًا.
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </label>
+                                        <input type="number" step="0.01" id="general-interest-rate" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5">
+                                    </div>
+                                    <div class="bg-gray-50 p-4 rounded-lg">
+                                        <h4 class="text-md font-semibold text-gray-800 mb-2">مثال واقعي:</h4>
+                                        <p class="text-sm text-gray-700">
+                                            <span class="font-bold">أصل المبلغ:</span> <span id="general-example-principal">245,000</span> جنيه<br>
+                                            <span class="font-bold">مدة التأخير:</span> <span id="general-example-delay-months">27</span> شهر<br>
+                                            <span class="font-bold">الغرامة:</span> <span id="general-example-penalty-amount">119,867</span> جنيه (بفائدة <span id="general-example-interest-percent">21.75</span>%)
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                         <div class="pt-6 flex items-center justify-end">
+                            <button type="submit" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-8 py-2.5 text-center">حفظ المحددات</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Customer Accounts List View -->
+                <div id="customer-accounts-view" class="hidden">
+                    <header class="pb-4 border-b">
+                        <h2 class="text-2xl font-bold text-gray-800">حسابات العملاء</h2>
+                        <p class="text-sm text-gray-500">عرض جميع حسابات العملاء المسجلين.</p>
+                    </header>
+                    <div class="mt-8 overflow-x-auto">
+                        <table class="min-w-full bg-white rounded-lg shadow overflow-hidden">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">اسم العميل</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">عدد الأراضي</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">إجمالي المستحقات</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الحالة</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="customer-accounts-table-body" class="divide-y divide-gray-200">
+                                <!-- Customer account rows will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Customer Account Detail View -->
+                <div id="customer-account-detail-view" class="hidden">
+                     <header class="flex items-center justify-between pb-4 border-b">
+                        <div>
+                             <h2 class="text-2xl font-bold text-gray-800">تفاصيل حساب العميل: <span id="detail-customer-name"></span></h2>
+                             <p class="text-sm text-gray-500">عرض جميع الفواتير والأراضي المرتبطة بالعميل.</p>
+                        </div>
+                        <button id="back-to-customer-accounts-btn" class="flex items-center px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">
+                            <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+                            العودة لحسابات العملاء
+                        </button>
+                    </header>
+
+                    <div class="mt-8 bg-white p-6 rounded-lg shadow-md">
+                        <h2 class="text-2xl font-semibold mb-6 text-gray-700">بيانات الطلب الأساسية</h2>
+                        <div id="customer-land-details-card" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <!-- Customer land and contract details will be populated here -->
+                        </div>
+                    </div>
+
+                    <div id="pre-rental-payments-section" class="mt-8 bg-white p-6 rounded-lg shadow-md hidden">
+                        <h2 class="text-2xl font-semibold mb-4 text-gray-700">المستحقات المدفوعة (قبل الإيجار)</h2>
+                        <div class="overflow-x-auto">
+                           <table class="w-full text-center">
+                               <thead class="bg-gray-200">
+                                   <tr>
+                                       <th class="p-3 font-semibold">البند</th>
+                                       <th class="p-3 font-semibold">المبلغ</th>
+                                       <th class="p-3 font-semibold">تاريخ الدفع</th>
+                                       <th class="p-3 font-semibold">ملاحظات</th>
+                                   </tr>
+                               </thead>
+                               <tbody id="pre-rental-payments-table-body" class="divide-y">
+                               </tbody>
+                               <tfoot id="pre-rental-payments-table-foot" class="bg-gray-100 font-bold">
+                               </tfoot>
+                           </table>
+                        </div>
+                    </div>
+
+                    <div id="auction-specific-section" class="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8 hidden">
+                        <div id="final-insurance-section" class="bg-white p-6 rounded-lg shadow-md">
+                            <h2 class="text-2xl font-semibold mb-4 text-gray-700">التأمين النهائي <span class="text-sm text-red-500">(خاص بالمزاد)</span></h2>
+                            <div class="overflow-x-auto">
+                               <table class="w-full text-center">
+                                   <thead class="bg-gray-200">
+                                       <tr>
+                                           <th class="p-3 font-semibold">الوصف</th>
+                                           <th class="p-3 font-semibold">المبلغ</th>
+                                           <th class="p-3 font-semibold">الحالة</th>
+                                       </tr>
+                                   </thead>
+                                   <tbody id="final-insurance-table-body" class="divide-y">
+                                   </tbody>
+                               </table>
+                            </div>
+                        </div>
+                         <div id="insurance-difference-section" class="bg-white p-6 rounded-lg shadow-md">
+                            <h2 class="text-2xl font-semibold mb-4 text-gray-700">حساب فروق التأمين <span class="text-sm text-red-500">(خاص بالمزاد)</span></h2>
+                            <div class="overflow-x-auto">
+                               <table class="w-full text-center">
+                                   <thead class="bg-gray-200">
+                                       <tr>
+                                           <th class="p-3 font-semibold">البند</th>
+                                           <th class="p-3 font-semibold">المبلغ</th>
+                                       </tr>
+                                   </thead>
+                                   <tbody id="insurance-difference-table-body" class="divide-y">
+                                   </tbody>
+                                   <tfoot id="insurance-difference-table-foot" class="bg-gray-100 font-bold">
+                                   </tfoot>
+                               </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 bg-white p-6 rounded-lg shadow-md">
+                        <h2 class="text-2xl font-semibold mb-4 text-gray-700">الفواتير المستحقة</h2>
+                        <div class="overflow-x-auto">
+                           <table class="w-full text-center">
+                               <thead class="bg-blue-500 text-white">
+                                   <tr>
+                                       <th class="p-3 font-semibold">رقم الفاتورة</th>
+                                       <th class="p-3 font-semibold">الوصف</th>
+                                       <th class="p-3 font-semibold">تاريخ الاستحقاق</th>
+                                       <th class="p-3 font-semibold">المبلغ</th>
+                                       <th class="p-3 font-semibold">الحالة</th>
+                                       <th class="p-3 font-semibold">إجراء</th>
+                                   </tr>
+                               </thead>
+                               <tbody id="customer-invoices-table-body" class="divide-y">
+                               </tbody>
+                           </table>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 bg-white p-6 rounded-lg shadow-md">
+                        <h3 class="text-2xl font-semibold text-gray-700 mb-4">جدول السداد المستقبلي (25 سنة)</h3>
+                        <div class="overflow-x-auto">
+                           <table class="min-w-full bg-white rounded-lg shadow overflow-hidden">
+                               <thead class="bg-gray-50">
+                                   <tr>
+                                       <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">السنة</th>
+                                       <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">تاريخ الاستحقاق</th>
+                                       <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">قيمة الإيجار الأساسية</th>
+                                       <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الزيادة السنوية</th>
+                                       <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الإجمالي المستحق</th>
+                                       <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الحالة</th>
+                                   </tr>
+                               </thead>
+                               <tbody id="payment-schedule-table-body" class="divide-y divide-gray-200">
+                               </tbody>
+                           </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Invoice Detail View -->
+                <div id="invoice-detail-view" class="hidden">
+                    <header class="flex items-center justify-between pb-4 border-b">
+                        <div>
+                             <h2 class="text-2xl font-bold text-gray-800">تفاصيل الفاتورة: <span id="detail-invoice-id"></span></h2>
+                             <p class="text-sm text-gray-500">عرض تفصيلي لبنود الفاتورة.</p>
+                        </div>
+                        <button id="back-to-due-invoices-btn" class="flex items-center px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">
+                            <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+                            العودة للفواتير المستحقة
+                        </button>
+                    </header>
+                    <div class="mt-8 bg-white p-6 sm:p-8 rounded-xl shadow-md">
+                        <div id="invoice-header" class="grid grid-cols-2 gap-4 mb-8">
+                           <!-- Invoice header details will be populated here -->
+                        </div>
+                        <div class="overflow-x-auto">
+                           <table class="min-w-full">
+                               <thead class="bg-gray-50">
+                                   <tr>
+                                       <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">البند</th>
+                                       <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الوصف</th>
+                                       <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">المبلغ</th>
+                                   </tr>
+                               </thead>
+                               <tbody id="invoice-items-table-body" class="divide-y divide-gray-200">
+                               </tbody>
+                               <tfoot class="bg-gray-50">
+                                    <tr>
+                                        <td colspan="2" class="px-6 py-3 text-left text-sm font-semibold text-gray-800">الإجمالي</td>
+                                        <td id="invoice-total-amount" class="px-6 py-3 text-left text-sm font-bold text-gray-900"></td>
+                                    </tr>
+                               </tfoot>
+                           </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Overdue Invoices View -->
+                <div id="overdue-invoices-view" class="hidden">
+                    <header class="pb-4 border-b">
+                        <h2 class="text-2xl font-bold text-gray-800">الفواتير المتأخرة</h2>
+                        <p class="text-sm text-gray-500">عرض جميع الفواتير التي تجاوزت تاريخ الاستحقاق.</p>
+                    </header>
+                    <div class="mt-8 overflow-x-auto">
+                        <table class="min-w-full bg-white rounded-lg shadow overflow-hidden">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">رقم الفاتورة</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">اسم العميل</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">تاريخ الاستحقاق</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">المبلغ</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">أيام التأخير</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="overdue-invoices-table-body" class="divide-y divide-gray-200">
+                                <!-- Overdue invoices will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Due Today Invoices View -->
+                <div id="due-today-invoices-view" class="hidden">
+                    <header class="pb-4 border-b">
+                        <h2 class="text-2xl font-bold text-gray-800">الفواتير المستحقة اليوم</h2>
+                        <p class="text-sm text-gray-500">عرض جميع الفواتير المستحقة للدفع اليوم.</p>
+                    </header>
+                     <div class="mt-8 overflow-x-auto">
+                        <table class="min-w-full bg-white rounded-lg shadow overflow-hidden">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">رقم الفاتورة</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">اسم العميل</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">المبلغ</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="due-today-invoices-table-body" class="divide-y divide-gray-200">
+                                <!-- Invoices due today will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Collected Revenues View -->
+                <div id="collected-revenues-view" class="hidden">
+                    <header class="pb-4 border-b">
+                        <h2 class="text-2xl font-bold text-gray-800">الإيرادات المحصلة</h2>
+                        <p class="text-sm text-gray-500">عرض المبالغ التي تم تحصيلها خلال فترة محددة.</p>
+                    </header>
+                     <div class="mt-8 overflow-x-auto">
+                        <table class="min-w-full bg-white rounded-lg shadow overflow-hidden">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">رقم الإيصال</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">اسم العميل</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">نوع البند</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">تاريخ التحصيل</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">المبلغ المحصل</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">طريقة الدفع</th>
+                                </tr>
+                            </thead>
+                            <tbody id="collected-revenues-table-body" class="divide-y divide-gray-200">
+                                <!-- Collected revenues will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+            
+            <!-- Reject Reason Modal -->
+            <div id="reject-reason-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 modal-overlay">
+                 <div class="relative top-20 mx-auto p-5 border w-full max-w-lg shadow-lg rounded-md bg-white">
+                     <div class="flex justify-between items-center pb-3 border-b">
+                         <h3 class="text-lg font-bold text-gray-900">سبب رفض المرفق</h3>
+                         <button id="close-reject-reason-modal-btn" class="text-gray-400 hover:text-gray-600 text-2xl font-bold">&times;</button>
+                     </div>
+                    <div class="mt-4 space-y-4">
+                        <div>
+                            <label for="rejection-reason-text" class="block mb-2 text-sm font-medium text-gray-700">سبب الرفض</label>
+                            <textarea id="rejection-reason-text" rows="3" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" placeholder="اكتب سبب رفض المرفق هنا..."></textarea>
+                        </div>
+                        <div class="items-center px-4 py-3 sm:flex sm:flex-row-reverse gap-2 mt-4 border-t pt-4">
+                            <button id="confirm-rejection-btn" class="w-full sm:w-auto inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none">
+                                تأكيد الرفض
+                            </button>
+                             <button type="button" id="cancel-rejection-btn" class="mt-3 sm:mt-0 w-full sm:w-auto inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none">
+                                إلغاء
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Send Reminder Modal -->
+            <div id="send-reminder-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 modal-overlay">
+                 <div class="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white">
+                    <div class="mt-3 text-center">
+                        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 text-blue-600">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                        </div>
+                        <h3 class="text-lg leading-6 font-bold text-gray-900 mt-2">تأكيد إرسال التذكير</h3>
+                        <div class="mt-2 px-7 py-3">
+                            <p class="text-sm text-gray-600">هل أنت متأكد أنك تريد إرسال تذكير بالدفع لهذه الفاتورة؟</p>
+                        </div>
+                        <div class="items-center px-4 py-3 sm:flex sm:flex-row-reverse gap-2">
+                            <button id="confirm-send-reminder-btn" class="w-full sm:w-auto inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none">
+                                نعم، أرسل
+                            </button>
+                             <button type="button" id="cancel-send-reminder-btn" class="mt-3 sm:mt-0 w-full sm:w-auto inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none">
+                                إلغاء
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+             <!-- Board Decision Modal -->
+             <div id="board-decision-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 modal-overlay">
+                 <div class="relative top-20 mx-auto p-5 border w-full max-w-lg shadow-lg rounded-md bg-white">
+                     <div class="flex justify-between items-center pb-3 border-b">
+                         <h3 class="text-lg font-bold text-gray-900">تأكيد حفظ تعديلات المحددات</h3>
+                         <button id="close-board-decision-modal-btn" class="text-gray-400 hover:text-gray-600 text-2xl font-bold">&times;</button>
+                     </div>
+                    <form id="board-decision-form" class="mt-4 space-y-4">
+                        <div>
+                            <label for="board-decision-number" class="block mb-2 text-sm font-medium text-gray-700 required">رقم قرار مجلس الإدارة</label>
+                            <input type="text" id="board-decision-number" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" required>
+                        </div>
+                        <div>
+                            <label for="board-decision-attachment" class="block mb-2 text-sm font-medium text-gray-700 required">مرفق القرار</label>
+                            <input type="file" id="board-decision-attachment" class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none" required>
+                        </div>
+                        <div class="items-center px-4 py-3 sm:flex sm:flex-row-reverse gap-2 mt-4 border-t pt-4">
+                            <button type="submit" class="w-full sm:w-auto inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none">
+                                حفظ التغييرات
+                            </button>
+                             <button type="button" id="cancel-params-save-btn" class="mt-3 sm:mt-0 w-full sm:w-auto inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none">
+                                إلغاء
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- History Log Modal -->
+            <div id="history-log-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 modal-overlay">
+                 <div class="relative top-20 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white">
+                     <div class="flex justify-between items-center pb-3 border-b">
+                         <h3 class="text-lg font-bold text-gray-900" id="history-modal-title">سجل التعديلات</h3>
+                         <button id="close-history-btn" class="text-gray-400 hover:text-gray-600 text-2xl font-bold">&times;</button>
+                     </div>
+                    <div class="mt-4 max-h-96 overflow-y-auto">
+                        <ul id="history-log-list" class="space-y-4">
+                           <!-- History items will be populated here -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+             <!-- Duplicate Land Alert Modal -->
+             <div id="duplicate-alert-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 modal-overlay">
+                 <div class="relative top-20 mx-auto p-5 border w-full max-w-sm shadow-lg rounded-md bg-white">
+                    <div class="mt-3 text-center">
+                        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 text-red-600">
+                           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
+                        </div>
+                        <h3 class="text-lg leading-6 font-bold text-gray-900 mt-2">خطأ</h3>
+                        <div class="mt-2 px-7 py-3">
+                            <p class="text-sm text-gray-600">تم اضافة الارض من قبل، قم باضافة ارض اخري.</p>
+                        </div>
+                        <div class="items-center px-4 py-3">
+                            <button id="close-duplicate-alert-btn" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none">
+                                موافق
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Toast Notification -->
+            <div id="toast-notification" class="hidden toast p-4 rounded-md shadow-lg text-white">
+                <p id="toast-message"></p>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Templates for dynamic content -->
+    <template id="land-card-template">
+         <div class="p-4 border rounded-lg bg-gray-50 relative land-card">
+             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+                <div class="lg:col-span-2">
+                    <label class="block mb-2 text-sm font-medium text-gray-700 required">رقم الأرض والموقع</label>
+                    <select class="land-select bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" required></select>
+                </div>
+                <div>
+                    <label class="block mb-2 text-sm font-medium text-gray-700">المركز</label>
+                    <input type="text" class="center-field bg-gray-200 border-gray-300 text-sm rounded-lg block w-full p-2.5" readonly>
+                </div>
+                 <div>
+                    <label class="block mb-2 text-sm font-medium text-gray-700">القرية</label>
+                    <input type="text" class="village-field bg-gray-200 border-gray-300 text-sm rounded-lg block w-full p-2.5" readonly>
+                </div>
+                <div>
+                    <label class="block mb-2 text-sm font-medium text-gray-700">المساحة (فدان)</label>
+                    <input type="number" class="area-field bg-gray-200 border-gray-300 text-sm rounded-lg block w-full p-2.5" readonly>
+                </div>
+                 <div>
+                    <label class="block mb-2 text-sm font-medium text-gray-700 required price-label">سعر الفدان</label>
+                    <input type="number" step="0.01" class="price-field bg-white border border-gray-300 text-sm rounded-lg block w-full p-2.5" placeholder="0.00" required>
+                </div>
+                <div>
+                    <label class="block mb-2 text-sm font-medium text-gray-700 total-value-label">القيمة الإيجارية الإجمالية</label>
+                    <input type="text" class="total-value-field bg-gray-200 border-gray-300 text-sm rounded-lg block w-full p-2.5" readonly>
+                </div>
+            </div>
+            <div class="auction-details-placeholder mt-4 hidden"></div>
+            <div class="direct-order-insurance-placeholder mt-4 hidden"></div> 
+            <div class="mt-4 pt-4 border-t flex items-center justify-between">
+                <div class="brochure-container">
+                    <label class="block mb-2 text-sm font-medium text-gray-700">كراسة الشروط للأرض (PDF)</label>
+                     <div class="flex items-center space-x-3 space-x-reverse">
+                        <label class="file-input-label flex items-center px-4 py-2 bg-white text-blue-500 rounded-lg border border-blue-500">
+                             <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                             اختر ملف
+                            <input type="file" class="brochure-upload hidden" accept=".pdf">
+                        </label>
+                         <button type="button" class="view-brochure-btn hidden flex items-center px-4 py-2 bg-white text-green-600 rounded-lg border border-green-600 hover:bg-green-50">
+                            <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                            عرض الكراسة
+                        </button>
+                     </div>
+                     <span class="file-name-display text-xs text-gray-500 mt-2 block">لم يتم اختيار ملف</span>
+                </div>
+                <button type="button" class="remove-land-btn self-end flex items-center justify-center w-8 h-8 bg-red-500 text-white rounded-full hover:bg-red-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 12H6"></path></svg>
+                </button>
+            </div>
+        </div>
+    </template>
+    
+    <template id="auction-details-template">
+        <div class="pt-4 mt-4 border-t border-dashed animated-section">
+            <h4 class="text-md font-semibold text-gray-700 mb-4">تفاصيل المزاد لهذه الأرض</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-8">
+                <div>
+                    <label class="block mb-2 text-sm font-medium text-gray-700 required">تاريخ جلسة المزاد</label>
+                    <input type="date" class="auction-date bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5">
+                </div>
+                <div>
+                    <label class="block mb-2 text-sm font-medium text-gray-700 required">وقت جلسة المزاد</label>
+                    <input type="time" class="auction-time bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5">
+                </div>
+                <div class="lg:col-span-1 md:col-span-2 flex flex-col items-center justify-center bg-gray-50 rounded-lg p-4">
+                    <h5 class="text-sm font-bold text-gray-600">الوقت المتبقي</h5>
+                    <div class="countdown-timer text-lg font-bold text-blue-600 tracking-wider mt-2 flex items-baseline justify-center flex-wrap gap-x-2"></div>
+                </div>
+                <div class="lg:col-span-3 md:col-span-2 mt-4 pt-4 border-t">
+                    <h5 class="text-md font-semibold text-gray-700 mb-4">تسعير كراسة الشروط</h5>
+                    <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+                        <div>
+                            <label class="block mb-2 text-sm text-gray-700 brochure-cost-label">سعر الكراسة</label>
+                            <input type="text" class="brochure-cost-input bg-gray-200 border text-sm rounded-lg block w-full p-2.5" data-cost-type="base" readonly>
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-sm text-gray-700 brochure-cost-label">قيمة مضافة</label>
+                            <input type="text" class="brochure-cost-input bg-gray-200 border text-sm rounded-lg block w-full p-2.5" data-cost-type="vat" readonly>
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-sm text-gray-700 brochure-cost-label">طابع الشهيد</label>
+                            <input type="text" class="brochure-cost-input bg-gray-200 border text-sm rounded-lg block w-full p-2.5" data-cost-type="stamp" readonly>
+                        </div>
+                        <div>
+                            <label class="block mb-2 text-sm text-gray-700 brochure-cost-label">إعانة الإعاقة</label>
+                            <input type="text" class="brochure-cost-input bg-gray-200 border text-sm rounded-lg block w-full p-2.5" data-cost-type="support" readonly>
+                        </div>
+                        <div class="bg-blue-50 p-4 rounded-lg flex flex-col justify-center">
+                            <label class="block text-sm font-bold text-blue-800 brochure-total-label">الإجمالي</label>
+                            <span class="brochure-total text-xl font-bold text-blue-800 mt-1">0.00</span>
+                        </div>
+                    </div>
+                </div>
+                 <div class="lg:col-span-3 md:col-span-2 mt-4 pt-4 border-t">
+                    <h5 class="text-md font-semibold text-gray-700 mb-4">التأمين الابتدائي (التامين المؤقت)</h5>
+                    <div>
+                         <label class="block mb-2 text-sm text-gray-700 insurance-label">سعر التأمين الابتدائي (EGP)</label>
+                         <input type="text" class="initial-insurance-price bg-gray-200 border-gray-300 text-sm rounded-lg block w-full p-2.5" readonly>
+                         <p class="text-xs text-gray-500 mt-2">يتم اضافة القيمة للدفع بعد شراء كراسة الشروط وهذا يثبت انه تم اشتراك في المزاد.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template id="direct-order-insurance-display-template">
+        <div class="pt-4 mt-4 border-t border-dashed animated-section">
+            <h4 class="text-md font-semibold text-gray-700 mb-4">التأمين السنوي</h4>
+            <div>
+                <label class="block mb-2 text-sm text-gray-700 insurance-label">قيمة التأمين السنوي</label>
+                <input type="text" class="direct-order-calculated-insurance-price bg-gray-200 border-gray-300 text-sm rounded-lg block w-full p-2.5" readonly>
+                <p class="text-xs text-gray-500 mt-2">
+                    تم حسابها بناءً على <span class="font-bold">سعر الفدان</span> المحدد للأرض ومساحتها.
+                </p>
+            </div>
+        </div>
+    </template>
+    
+    <template id="tier-row-template">
+        <tr class="tier-row">
+            <td class="px-2 py-2"><input type="text" class="tier-name w-full p-2 border rounded-md"></td>
+            <td class="px-2 py-2"><input type="number" class="tier-from w-full p-2 border rounded-md"></td>
+            <td class="px-2 py-2"><input type="number" class="tier-to w-full p-2 border rounded-md"></td>
+            <td class="px-2 py-2"><input type="number" class="tier-price w-full p-2 border rounded-md"></td>
+            <td class="px-2 py-2">
+                <button type="button" class="remove-tier-btn text-red-500 hover:text-red-700">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                </button>
+            </td>
+        </tr>
+    </template>
+    
+    <template id="annual-increase-mechanism-template">
+        <tr class="annual-increase-mechanism-row">
+            <td class="px-2 py-2"><div class="mechanism-label"></div></td>
+            <td class="px-2 py-2"><input type="number" step="0.1" class="total-increase w-full p-2 border rounded-md" placeholder="0.0"></td>
+            <td class="px-2 py-2"><input type="number" step="0.1" class="breakdown-input w-full p-2 border rounded-md" data-breakdown="education" placeholder="0.0"></td>
+            <td class="px-2 py-2"><input type="number" step="0.1" class="breakdown-input w-full p-2 border rounded-md" data-breakdown="health" placeholder="0.0"></td>
+            <td class="px-2 py-2"><input type="number" step="0.1" class="breakdown-input w-full p-2 border rounded-md" data-breakdown="solidarity" placeholder="0.0"></td>
+            <td class="px-2 py-2"><input type="number" step="0.1" class="breakdown-input w-full p-2 border rounded-md" data-breakdown="hassanHelmy" placeholder="0.0"></td>
+            <td class="px-2 py-2"><span class="breakdown-sum font-bold">0%</span></td>
+        </tr>
+    </template>
+    
+    <template id="grace-period-mechanism-template">
+         <tr class="grace-period-mechanism-row">
+            <td class="px-2 py-2"><div class="mechanism-label"></div></td>
+            <td class="px-2 py-2"><input type="number" min="0" class="grace-years w-full p-2 border rounded-md" placeholder="0"></td>
+            <td class="px-2 py-2"><input type="number" min="0" max="11" class="grace-months w-full p-2 border rounded-md" placeholder="0"></td>
+        </tr>
+    </template>
+
+     <template id="brochure-tier-row-template">
+        <tr class="brochure-tier-row">
+            <td class="px-2 py-2"><input type="text" class="tier-name w-full p-2 border rounded-md"></td>
+            <td class="px-2 py-2"><input type="number" class="tier-from w-full p-2 border rounded-md"></td>
+            <td class="px-2 py-2"><input type="number" class="tier-to w-full p-2 border rounded-md"></td>
+            <td class="px-2 py-2"><input type="number" class="tier-price w-full p-2 border rounded-md"></td>
+            <td class="px-2 py-2">
+                <button type="button" class="remove-tier-btn text-red-500 hover:text-red-700">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                </button>
+            </td>
+        </tr>
+    </template>
+    
+    <template id="initiative-definition-row-template">
+        <tr class="initiative-definition-row">
+            <td class="px-2 py-2"><input type="text" class="initiative-name w-full p-2 border rounded-md" placeholder="مثال: مبادرة النخيل"></td>
+            <td class="px-2 py-2">
+                 <textarea class="initiative-conditions w-full p-2 border rounded-md" rows="2" placeholder="اكتب شروط المبادرة هنا..."></textarea>
+            </td>
+            <td class="px-2 py-2">
+                <button type="button" class="remove-initiative-btn text-red-500 hover:text-red-700">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                </button>
+            </td>
+        </tr>
+    </template>
+    
+    <template id="insurance-difference-example-template">
+         <div class="mt-8 bg-gray-50 p-6 rounded-xl border insurance-example">
+            <h4 class="text-md font-semibold text-gray-800 mb-4">مثال توضيحي لحساب فروق التأمين</h4>
+            <p class="text-sm text-gray-600 mb-4">
+                بناءً على النسب المحددة أعلاه، وبافتراض سعر فدان أولي 10,000 جنيه ومساحة 100 فدان ونسبة زيادة سنوية 2%.
+            </p>
+            <div class="overflow-x-auto">
+                <table class="min-w-full text-sm bg-white">
+                    <thead class="bg-gray-100">
+                        <tr>
+                            <th class="px-4 py-2 text-right font-medium text-gray-600">السنة</th>
+                            <th class="px-4 py-2 text-right font-medium text-gray-600">سعر الفدان</th>
+                            <th class="px-4 py-2 text-right font-medium text-gray-600">قيمة الإيجار السنوية</th>
+                            <th class="px-4 py-2 text-right font-medium text-gray-600">نسبة التأمين</th>
+                            <th class="px-4 py-2 text-right font-medium text-gray-600">قيمة التأمين</th>
+                            <th class="px-4 py-2 text-right font-medium text-gray-600">فروق التأمين المستحقة</th>
+                        </tr>
+                    </thead>
+                    <tbody id="insurance-difference-example-body">
+                        <!-- Example rows will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </template>
+
+    <template id="final-decision-template">
+         <div class="bg-white p-6 sm:p-8 rounded-xl shadow-md">
+            <h3 class="text-lg font-semibold text-gray-800 border-b pb-3 mb-6">تسجيل القرار النهائي</h3>
+            <form id="final-decision-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">قرار المحافظ</label>
+                    <div class="flex items-center space-x-4 space-x-reverse">
+                        <div class="flex items-center">
+                            <input id="decision-approve" name="governor-decision" type="radio" value="approved" class="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                            <label for="decision-approve" class="ml-2 mr-2 block text-sm text-gray-900">لا مانع</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input id="decision-reject" name="governor-decision" type="radio" value="rejected" class="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                            <label for="decision-reject" class="ml-2 mr-2 block text-sm text-gray-900">يوجد مانع</label>
+                        </div>
+                    </div>
+                </div>
+                <div id="rejection-reason-container" class="hidden">
+                    <label for="governor-rejection-reason" class="block mb-2 text-sm font-medium text-gray-700">موانع الموافقة</label>
+                    <textarea id="governor-rejection-reason" rows="3" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5" placeholder="اكتب أسباب الممانعة هنا..."></textarea>
+                </div>
+                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t">
+                    <div>
+                        <label for="decision-maker-name" class="block mb-2 text-sm font-medium text-gray-700">اسم صاحب القرار</label>
+                        <input type="text" id="decision-maker-name" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5">
+                    </div>
+                    <div>
+                        <label for="decision-date" class="block mb-2 text-sm font-medium text-gray-700">تاريخ القرار</label>
+                        <input type="date" id="decision-date" class="bg-gray-50 border border-gray-300 text-sm rounded-lg block w-full p-2.5">
+                    </div>
+                 </div>
+                 <div class="pt-4 flex justify-end">
+                    <button type="submit" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-8 py-2.5 text-center">حفظ القرار</button>
+                 </div>
+            </form>
+        </div>
+    </template>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // --- DATA STORE (STATE) ---
+            // This section holds all the application's data.
+            // In a real application, this data would come from a server API.
+            const availableLands = [
+                { id: 201, center: "مركز الخارجة", village: "قرية المنيرة", areaFeddans: 200.00 },
+                { id: 202, center: "مركز الخارجة", village: "قرية ناصر الثورة", areaFeddans: 150.50 },
+                { id: 301, center: "مركز الداخلة", village: "قرية موط", areaFeddans: 200.20 },
+                { id: 302, center: "مركز الداخلة", village: "قرية القصر", areaFeddans: 100.00 },
+                { id: 401, center: "مركز الفرافرة", village: "قرية الكفاح", areaFeddans: 150.00 },
+                { id: 402, center: "مركز الفرافرة", village: "قرية أبو منقار", areaFeddans: 705.80 },
+                { id: 501, center: "مركز باريس", village: "قرية بغداد", areaFeddans: 400.00 },
+                { id: 601, center: "مركز بلاط", village: "قرية تنيدة", areaFeddans: 220.10 },
+                { id: 1001, center: "مركز الفرافرة", village: "النهضة", areaFeddans: 500.00 }
+            ];
+
+            const mechanismMap = { auction: 'مزاد علني', direct_order: 'أمر مباشر', initiative: 'مبادرة' };
+
+            let auctionParameters = {
+                insuranceTiers: [
+                    { name: 'الشريحة الاولى', from: 0, to: 200, price: 500 },
+                    { name: 'الشريحة الثانية', from: 201, to: 500, price: 400 },
+                    { name: 'الشريحة الثالثة', from: 501, to: 1000, price: 300 },
+                    { name: 'الشريحة الرابعة', from: 1001, to: Infinity, price: 200 },
+                ],
+                brochureTiers: [
+                     { name: 'شريحة 1', from: 0, to: 1000, price: 299 },
+                     { name: 'شريحة 2', from: 1001, to: 2000, price: 399 },
+                     { name: 'شريحة 3', from: 2001, to: 3000, price: 499 },
+                ],
+                brochureAddons: { vatPercent: 14, stamp: 5, support: 1 },
+                finalInsurancePercentages: [10, 15, 20],
+                paymentDeadlineDays: 60
+            };
+            
+            let directOrderParameters = {
+                downPaymentPercentage: 50,
+                gracePeriodMonths: 6,
+                guaranteeTypes: ['bank_check']
+            };
+            
+            let initiativeDefinitions = [
+                { id: 'palm_initiative_1', name: 'مبادرة النخيل', conditions: '1. إلزامية زراعة 70% من المساحة بنخيل التمر.\n2. استخدام أساليب الري الحديثة.\n3. تقديم تقرير دوري كل 6 أشهر عن حالة الزراعة.' },
+                { id: 'dollar_initiative_1', name: 'مبادرة الدولار', conditions: '1. يتم سداد كامل قيمة الأرض بالدولار الأمريكي.\n2. لا توجد فترة سماح للسداد.' }
+            ];
+
+            let generalAnnualIncreaseData = {
+                auction: { total: 2.0, breakdown: { education: 50, health: 25, solidarity: 25, hassanHelmy: 0 } },
+                direct_order: { total: 3.0, breakdown: { education: 40, health: 30, solidarity: 30, hassanHelmy: 0 } },
+                initiative: { total: 1.5, breakdown: { education: 60, health: 20, solidarity: 20, hassanHelmy: 0 } }
+            };
+            let generalGracePeriodData = {
+                auction: { years: 0, months: 6 },
+                direct_order: { years: 3, months: 0 },
+                initiative: { years: 1, months: 6 }
+            };
+            let generalLatePenaltiesData = {
+                interestRate: 21.75,
+                example: { principal: 245000, durationMonths: 27, calculatedPenalty: 119867, interestPercent: 21.75 }
+            };
+
+            let parametersHistory = [];
+
+            const futureDate = new Date();
+            futureDate.setDate(futureDate.getDate() + 5);
+            futureDate.setHours(18, 0, 0);
+            let offeringsList = [
+                { id: 'uuid1', mechanism: 'auction', currency: 'EGP', creationDate: '2025-06-25', creator: 'أحمد محمود', history: [],
+                  lands: [
+                      { landId: 201, pricePerFeddans: 5000, auctionEndDate: futureDate.toISOString(), brochureCosts: { base: 299, vat: 41.86, stamp: 5, support: 1 }, brochureFileName: "كراسة_شروط_201.pdf", initialInsurancePrice: 500 }, 
+                      { landId: 301, pricePerFeddans: 7500, auctionEndDate: futureDate.toISOString(), brochureCosts: { base: 499, vat: 69.86, stamp: 5, support: 1 }, brochureFileName: "كراسة_شروط_301.pdf", initialInsurancePrice: 400 }
+                  ] 
+                },
+                { id: 'uuid2', mechanism: 'direct_order', currency: 'USD', creationDate: '2025-06-26', creator: 'فاطمة الزهراء', history: [],
+                  lands: [ { landId: 401, pricePerFeddans: 4000, brochureFileName: "عقد_تخصيص.pdf", initialInsurancePrice: 600000 } ] 
+                },
+                 { id: 'uuid3', mechanism: 'initiative', initiativeType: 'palm_initiative_1', currency: 'EGP', creationDate: '2025-06-28', creator: 'سارة علي', history: [],
+                  lands: [ { landId: 501, pricePerFeddans: 3500, initialInsurancePrice: 1400000 } ] 
+                },
+            ];
+            
+            let landRequestsData = [
+                { requestId: 'req001', landId: 201, applicantName: 'شركة الوادي الجديد', requestDate: '2025-06-26', status: 'pending', workflowStage: 'technical_review', proposedProject: 'مشروع زراعة محاصيل استراتيجية.', attachments: [{name: 'دراسة_الجدوى.pdf', status: 'verified'}, {name: 'السجل_التجاري.pdf', status: 'pending'}] },
+                { requestId: 'req002', landId: 201, applicantName: 'مؤسسة الصحراء الخضراء', requestDate: '2025-06-27', status: 'approved', workflowStage: 'governor_decision', finalPrice: 6500, proposedProject: 'مشروع استصلاح وزراعة أشجار مثمرة.', attachments: [{name: 'خطة_المشروع.pdf', status: 'verified'}] },
+                { requestId: 'req003', landId: 401, applicantName: 'مستثمر فردي', requestDate: '2025-06-27', status: 'approved', workflowStage: 'governor_decision', finalPrice: 4000, proposedProject: 'مشروع إنتاج حيواني متكامل.', attachments: [{name: 'الملف_الشخصي.pdf', status: 'verified'}, {name: 'خطة_التمويل.pdf', status: 'verified'}] },
+                { requestId: 'req004', landId: 501, applicantName: 'جمعية زراعة النخيل', requestDate: '2025-06-29', status: 'attachment_rejected', workflowStage: 'submission', proposedProject: 'توسعة زراعات النخيل ضمن المبادرة.', attachments: [{name: 'طلب_الانضمام.pdf', status: 'rejected', rejectionReason: 'المستند غير واضح.'}] },
+                { requestId: 'req005', landId: 301, applicantName: 'شركة الاستثمار الزراعي', requestDate: '2025-07-01', status: 'pending', workflowStage: 'submission', proposedProject: 'زراعة نباتات طبية وعطرية.', attachments: [{name: 'طلب.pdf', status: 'pending'}]},
+                { requestId: 'req006', landId: 401, applicantName: 'محمد عبد الله', requestDate: '2025-07-02', status: 'rejected', workflowStage: 'technical_review', proposedProject: 'مشروع شخصي صغير.', attachments: []},
+            ];
+
+            const customerAccountsData = [
+                { 
+                    id: 'cust01', name: 'شركة الوادي الجديد', landCount: 1, landId: 401, totalDue: 75000, currency: 'EGP', status: 'active', 
+                    contractStartDate: '2023-01-01', baseRent: 70000, mechanism: 'direct_order',
+                    submissionDate: '2022-11-10', receiptDate: '2023-01-01', companyProfile: 'شركة متخصصة في المشاريع الزراعية الكبرى واستصلاح الأراضي الصحراوية.',
+                    preRentalPayments: [
+                        { item: 'رسوم الرسم الكروكي', amount: 1500, date: '2022-11-20', notes: '-' },
+                        { item: 'تبرعات', amount: 5000, date: '2022-11-15', notes: 'دعم مجتمعي' }
+                    ]
+                },
+                { 
+                    id: 'cust02', name: 'مؤسسة الصحراء الخضراء', landCount: 1, landId: 201, totalDue: 12000, currency: 'EGP', status: 'active', 
+                    contractStartDate: '2024-07-01', baseRent: 12000, mechanism: 'auction',
+                    submissionDate: '2024-05-01', receiptDate: '2024-07-01', companyProfile: 'مؤسسة أهلية تهدف إلى زيادة الرقعة الزراعية باستخدام أساليب الري الحديثة.',
+                    preRentalPayments: [
+                        { item: 'التأمين الابتدائي للمزاد', amount: 500, date: '2024-05-05', notes: '-' },
+                        { item: 'كراسة الشروط (للمزاد فقط)', amount: 345.86, date: '2024-05-05', notes: 'غير مستردة' }
+                    ],
+                    finalInsurance: { due: 25000, paid: 25000, initialPaid: 500, status: 'paid' }
+                },
+                { 
+                    id: 'cust03', name: 'محمد عبد الله', landCount: 1, landId: 302, totalDue: 0, currency: 'EGP', status: 'inactive', 
+                    contractStartDate: '2022-05-15', baseRent: 20000, mechanism: 'direct_order',
+                    submissionDate: '2022-03-01', receiptDate: '2022-05-15', companyProfile: 'مستثمر فردي في مجال الزراعات الصغيرة.',
+                    preRentalPayments: []
+                },
+                { 
+                    id: 'cust04', name: 'شركة الاستثمار الزراعي', landCount: 1, landId: 501, totalDue: 250000, currency: 'EGP', status: 'overdue', 
+                    contractStartDate: '2020-01-01', baseRent: 200000, mechanism: 'initiative',
+                    submissionDate: '2019-10-15', receiptDate: '2020-01-01', companyProfile: 'شركة رائدة في مجال التطوير العقاري، تأسست عام 2010 وتهدف إلى تقديم حلول سكنية مبتكرة.',
+                    preRentalPayments: [
+                        { item: 'رسوم الرسم الكروكي', amount: 2500, date: '2019-10-20', notes: '-' }
+                    ]
+                },
+            ];
+
+            const overdueInvoicesData = [
+                { invoiceId: 'INV-0123', customerName: 'شركة الاستثمار الزراعي', description: "إيجار سنوي 2024", dueDate: '2025-06-01', amount: 150000, currency: 'EGP', daysOverdue: 36 },
+                { invoiceId: 'INV-0129', customerName: 'شركة الوادي الجديد', description: "قسط ربع سنوي", dueDate: '2025-05-20', amount: 25000, currency: 'EGP', daysOverdue: 48 },
+            ];
+            
+            const dueTodayInvoicesData = [
+                 { invoiceId: 'INV-0145', customerName: 'مؤسسة الصحراء الخضراء', description: "رسوم إدارية", amount: 12000, currency: 'EGP' },
+            ];
+            
+            const collectedRevenuesData = [
+                { receiptId: 'REC-5501', customerName: 'شركة الوادي الجديد', collectionDate: '2025-06-15', amount: 50000, currency: 'EGP', paymentMethod: 'تحويل بنكي', itemType: 'قيمة إيجارية' },
+                { receiptId: 'REC-5502', customerName: 'مستثمر فردي', collectionDate: '2025-06-18', amount: 480000, currency: 'USD', paymentMethod: 'شيك', itemType: 'تأمين نهائي'},
+                { receiptId: 'REC-5503', customerName: 'مؤسسة الصحراء الخضراء', collectionDate: '2025-06-20', amount: 500, currency: 'EGP', paymentMethod: 'نقدي', itemType: 'رسم كروكي' },
+            ];
+            
+            const invoiceDetailsData = {
+                'INV-0145': [
+                    { item: 'قيمة إيجارية سنوية', description: 'دفعة عن أرض رقم 302', amount: 10000, currency: 'EGP' },
+                    { item: 'رسوم إدارية', description: 'رسوم عن العام الحالي', amount: 2000, currency: 'EGP' }
+                ]
+            };
+
+
+            let currentOfferingId = null; 
+            let currentLandIdForDetails = null;
+            let currentRequestForRejection = null;
+
+
+            // --- UI Elements Cache ---
+            const uiElements = {
+                viewContainer: document.getElementById('view-container'),
+                listView: document.getElementById('list-view'),
+                formView: document.getElementById('form-view'),
+                landRequestsView: document.getElementById('land-requests-view'),
+                requestDetailsView: document.getElementById('request-details-view'),
+                singleRequestDetailsView: document.getElementById('single-request-details-view'),
+                parametersView: document.getElementById('parameters-view'),
+                customerAccountsView: document.getElementById('customer-accounts-view'),
+                customerAccountDetailView: document.getElementById('customer-account-detail-view'),
+                overdueInvoicesView: document.getElementById('overdue-invoices-view'),
+                dueTodayInvoicesView: document.getElementById('due-today-invoices-view'),
+                collectedRevenuesView: document.getElementById('collected-revenues-view'),
+                invoiceDetailView: document.getElementById('invoice-detail-view'),
+                showFormBtn: document.getElementById('show-form-btn'),
+                backToListBtn: document.getElementById('back-to-list-btn'),
+                backToRequestsListBtn: document.getElementById('back-to-requests-list-btn'),
+                backToRequestListForLandBtn: document.getElementById('back-to-request-list-for-land-btn'),
+                backToCustomerAccountsBtn: document.getElementById('back-to-customer-accounts-btn'),
+                backToDueInvoicesBtn: document.getElementById('back-to-due-invoices-btn'),
+                offeringsTableBody: document.getElementById('offerings-table-body'),
+                requestsSummaryTableBody: document.getElementById('requests-summary-table-body'),
+                requestsForLandTableBody: document.getElementById('requests-for-land-table-body'),
+                customerAccountsTableBody: document.getElementById('customer-accounts-table-body'),
+                customerInvoicesTableBody: document.getElementById('customer-invoices-table-body'),
+                overdueInvoicesTableBody: document.getElementById('overdue-invoices-table-body'),
+                dueTodayInvoicesTableBody: document.getElementById('due-today-invoices-table-body'),
+                collectedRevenuesTableBody: document.getElementById('collected-revenues-table-body'),
+                invoiceItemsTableBody: document.getElementById('invoice-items-table-body'),
+                paymentScheduleTableBody: document.getElementById('payment-schedule-table-body'),
+                requestLandDetailsCard: document.getElementById('request-land-details-card'),
+                detailsLandIdSpan: document.getElementById('details-land-id'),
+                detailCustomerNameSpan: document.getElementById('detail-customer-name'),
+                detailInvoiceIdSpan: document.getElementById('detail-invoice-id'),
+                invoiceHeader: document.getElementById('invoice-header'),
+                invoiceTotalAmount: document.getElementById('invoice-total-amount'),
+                applicantDetailsCard: document.getElementById('applicant-details-card'),
+                proposedProjectText: document.getElementById('proposed-project-text'),
+                attachmentsList: document.getElementById('attachments-list'),
+                requestWorkflowContainer: document.getElementById('request-workflow-container'),
+                finalDecisionContainer: document.getElementById('final-decision-container'),
+                historyLogModal: document.getElementById('history-log-modal'),
+                historyLogList: document.getElementById('history-log-list'),
+                closeHistoryBtn: document.getElementById('close-history-btn'),
+                duplicateAlertModal: document.getElementById('duplicate-alert-modal'),
+                closeDuplicateAlertBtn: document.getElementById('close-duplicate-alert-btn'),
+                sendReminderModal: document.getElementById('send-reminder-modal'),
+                confirmSendReminderBtn: document.getElementById('confirm-send-reminder-btn'),
+                cancelSendReminderBtn: document.getElementById('cancel-send-reminder-btn'),
+                toastNotification: document.getElementById('toast-notification'),
+                toastMessage: document.getElementById('toast-message'),
+                landOfferingForm: document.getElementById('land-offering-form'),
+                formMechanismTypeSelect: document.getElementById('mechanism-type'),
+                formLandsContainer: document.getElementById('offered-lands-container'),
+                addLandBtn: document.getElementById('add-land-btn'),
+                currencyRadios: document.querySelectorAll('input[name="currency"]'),
+                parametersForm: document.getElementById('parameters-form'),
+                boardDecisionModal: document.getElementById('board-decision-modal'),
+                boardDecisionForm: document.getElementById('board-decision-form'),
+                cancelParamsSaveBtn: document.getElementById('cancel-params-save-btn'),
+                closeBoardDecisionModalBtn: document.getElementById('close-board-decision-modal-btn'),
+                viewParametersHistoryBtn: document.getElementById('view-parameters-history-btn'),
+                auctionParamsContent: document.getElementById('auction-params-content'),
+                directOrderParamsContent: document.getElementById('direct-order-params-content'),
+                initiativeParamsContent: document.getElementById('initiative-params-content'),
+                generalParamsContent: document.getElementById('general-params-content'),
+                parametersTabContainer: document.getElementById('parameters-tab-container'),
+                initiativeDetailsContainer: document.getElementById('initiative-details-container'),
+                initiativeTypeSelect: document.getElementById('initiative-type-select'),
+                initiativeConditionsDisplay: document.getElementById('initiative-conditions-display'),
+                rejectReasonModal: document.getElementById('reject-reason-modal'),
+                requestsFilterTabs: document.getElementById('requests-filter-tabs'),
+                insuranceTiersContainer: document.getElementById('insurance-tiers-container'),
+                addTierBtn: document.getElementById('add-tier-btn'),
+                brochureTiersContainer: document.getElementById('brochure-tiers-container'),
+                addBrochureTierBtn: document.getElementById('add-brochure-tier-btn'),
+                generalAnnualIncreaseContainer: document.getElementById('general-annual-increase-container'),
+                generalGracePeriodContainer: document.getElementById('general-grace-period-container'),
+                initiativeDefinitionsContainer: document.getElementById('initiative-definitions-container'),
+                addInitiativeBtn: document.getElementById('add-initiative-btn'),
+                sidebarAccountsToggle: document.getElementById('sidebar-accounts-toggle'),
+                sidebarAccountsSubmenu: document.getElementById('sidebar-accounts-submenu'),
+                customerLandDetailsCard: document.getElementById('customer-land-details-card'),
+                preRentalPaymentsSection: document.getElementById('pre-rental-payments-section'),
+                preRentalPaymentsTableBody: document.getElementById('pre-rental-payments-table-body'),
+                preRentalPaymentsTableFoot: document.getElementById('pre-rental-payments-table-foot'),
+                auctionSpecificSection: document.getElementById('auction-specific-section'),
+                finalInsuranceSection: document.getElementById('final-insurance-section'),
+                finalInsuranceTableBody: document.getElementById('final-insurance-table-body'),
+                insuranceDifferenceSection: document.getElementById('insurance-difference-section'),
+                insuranceDifferenceTableBody: document.getElementById('insurance-difference-table-body'),
+                insuranceDifferenceTableFoot: document.getElementById('insurance-difference-table-foot'),
+            };
+            
+            // --- Utility Functions ---
+            const formatCurrency = (value, currency) => {
+                if (typeof value !== 'number') return '';
+                const locale = currency === 'USD' ? 'en-US' : 'ar-EG';
+                const options = currency ? { style: 'currency', currency: currency, minimumFractionDigits: 2 } : { style: 'decimal', minimumFractionDigits: 2 };
+                return value.toLocaleString(locale, options);
+            };
+            
+            const calculateInitialInsurance = (area) => {
+                const tier = auctionParameters.insuranceTiers.find(t => area >= t.from && area <= t.to);
+                return tier ? tier.price : 0;
+            };
+
+            const calculateBrochureBasePrice = (insuranceValue) => {
+                const tier = auctionParameters.brochureTiers.find(t => insuranceValue >= t.from && insuranceValue <= t.to);
+                return tier ? tier.price : 0;
+            };
+
+            function showToast(message, isSuccess = true) {
+                uiElements.toastMessage.textContent = message;
+                uiElements.toastNotification.className = `toast p-4 rounded-md shadow-lg text-white ${isSuccess ? 'bg-green-500' : 'bg-red-500'}`;
+                uiElements.toastNotification.classList.remove('hidden');
+                setTimeout(() => {
+                    uiElements.toastNotification.classList.add('hide');
+                    // Reset after animation finishes
+                    setTimeout(() => uiElements.toastNotification.classList.add('hidden'), 500);
+                }, 3000);
+            }
+
+            // --- Page State Management ---
+            function showView(viewId) {
+                const views = [
+                    uiElements.listView, uiElements.formView, uiElements.parametersView, 
+                    uiElements.landRequestsView, uiElements.requestDetailsView, uiElements.singleRequestDetailsView,
+                    uiElements.customerAccountsView, uiElements.overdueInvoicesView, 
+                    uiElements.dueTodayInvoicesView, uiElements.collectedRevenuesView,
+                    uiElements.customerAccountDetailView, uiElements.invoiceDetailView
+                ];
+                views.forEach(view => {
+                    if (view) view.classList.toggle('hidden', view.id !== viewId);
+                });
+
+                document.querySelectorAll('.menu-item, .menu-sub-item').forEach(item => item.classList.remove('active'));
+                
+                const link = document.querySelector(`[data-view="${viewId}"]`);
+                if (link) {
+                    link.classList.add('active');
+                    const parentMenu = link.closest('li.px-4').querySelector('.menu-item');
+                     if (parentMenu && !parentMenu.classList.contains('active')) {
+                        parentMenu.classList.add('active');
+                        // Expand submenu if a sub-item is active
+                        const submenu = parentMenu.nextElementSibling;
+                        if (submenu && submenu.id === 'sidebar-accounts-submenu') {
+                            submenu.classList.remove('hidden');
+                            parentMenu.querySelector('svg:last-child').classList.add('rotate-180');
+                        }
+                    }
+                } else {
+                     const mainLink = document.getElementById(`sidebar-${viewId.split('-')[0]}-link`);
+                     if(mainLink) mainLink.classList.add('active');
+                }
+            }
+            
+            function switchToFormView(mode = 'add', offeringId = null) {
+                showView('form-view');
+                uiElements.landOfferingForm.reset();
+                uiElements.formLandsContainer.innerHTML = '';
+                currentOfferingId = offeringId;
+                const isViewMode = mode === 'view';
+                const saveBtn = document.getElementById('save-form-btn');
+                const viewHistoryBtn = document.getElementById('view-history-btn');
+                
+                if (mode === 'edit' || isViewMode) {
+                    const offering = offeringsList.find(o => o.id === offeringId);
+                    if (offering) {
+                        populateForm(offering);
+                        viewHistoryBtn.classList.toggle('hidden', !(offering.history && offering.history.length > 0));
+                        if(offering.history && offering.history.length > 0) {
+                             viewHistoryBtn.onclick = () => showHistoryModal('offering', offeringId);
+                        }
+                    }
+                    document.getElementById('form-title').textContent = isViewMode ? "عرض تفاصيل الطرح" : "تعديل الطرح";
+                    saveBtn.textContent = "حفظ التعديل";
+                } else {
+                    document.getElementById('form-title').textContent = "إضافة طرح جديد";
+                    saveBtn.textContent = "حفظ الطرح";
+                    viewHistoryBtn.classList.add('hidden');
+                    addLandCard();
+                }
+                
+                const isFormDisabled = isViewMode;
+                uiElements.formView.querySelectorAll('input, select, button, textarea').forEach(el => {
+                    const isAlwaysEnabled = ['back-to-list-btn', 'cancel-form-btn', 'view-history-btn'].includes(el.id) || el.closest('#view-history-btn');
+                    el.disabled = isFormDisabled && !isAlwaysEnabled;
+                });
+                saveBtn.style.display = isViewMode ? 'none' : 'inline-flex';
+                uiElements.addLandBtn.style.display = isViewMode ? 'none' : 'flex';
+                uiElements.formView.querySelectorAll('.remove-land-btn').forEach(btn => btn.style.display = isViewMode ? 'none' : 'flex');
+            }
+            
+            function switchToListView() {
+                showView('list-view');
+                currentOfferingId = null;
+            }
+            
+            function switchToRequestsSummaryView() {
+                showView('land-requests-view');
+                renderRequestsSummaryView();
+            }
+
+            // --- Modal Logic ---
+            function showHistoryModal(type, id) {
+                const data = type === 'offering' ? offeringsList.find(o => o.id === id) : { history: parametersHistory };
+                uiElements.historyLogList.innerHTML = '';
+                if (data && data.history && data.history.length > 0) {
+                     data.history.forEach(log => {
+                        const li = document.createElement('li');
+                        li.className = "p-3 bg-gray-50 rounded-lg";
+                        const logDate = new Date(log.timestamp);
+                        li.innerHTML = `<p class="text-sm text-gray-800">${log.action}</p>
+                                        <p class="text-xs text-gray-500 mt-1">بواسطة: ${log.user} - في: ${logDate.toLocaleString('ar-EG')} ${log.decisionNumber ? `- قرار: ${log.decisionNumber}` : ''}</p>`;
+                        uiElements.historyLogList.appendChild(li);
+                     });
+                } else {
+                    uiElements.historyLogList.innerHTML = `<li class="text-center text-gray-500 p-4">لا يوجد سجل تعديلات.</li>`;
+                }
+                document.getElementById('history-modal-title').textContent = type === 'offering' ? 'سجل تعديلات الطرح' : 'سجل تعديلات المحددات';
+                uiElements.historyLogModal.classList.remove('hidden');
+            }
+
+            // --- List View Logic ---
+            function renderOfferingsList() {
+                 uiElements.offeringsTableBody.innerHTML = '';
+                 const runningTimers = [...document.querySelectorAll('[data-interval-id]')].map(el => parseInt(el.dataset.intervalId));
+                 runningTimers.forEach(clearInterval);
+
+                 offeringsList.forEach(offering => {
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-gray-50";
+                    const landsHtml = `${offering.lands.length} أراضي`;
+                    const auctionEndDate = offering.mechanism === 'auction' ? (offering.lands[0] ? offering.lands[0].auctionEndDate : null) : null;
+                    const historyButton = (offering.history && offering.history.length > 0) 
+                        ? `<button class="log-btn text-gray-500 hover:text-indigo-600" data-id="${offering.id}">سجل التعديلات</button>` : '';
+
+                    tr.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">${landsHtml}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${mechanismMap[offering.mechanism] || offering.mechanism}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${offering.creationDate}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${offering.creator}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 list-countdown" data-end-date="${auctionEndDate}"></td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium status-cell"></td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div class="flex items-center space-x-4 space-x-reverse">
+                                <button class="view-btn text-gray-500 hover:text-blue-600" data-id="${offering.id}">عرض</button>
+                                <button class="edit-btn text-gray-500 hover:text-yellow-600" data-id="${offering.id}">تعديل</button>
+                                ${historyButton}
+                            </div>
+                        </td>
+                    `;
+                    uiElements.offeringsTableBody.appendChild(tr);
+                });
+                startListTimers();
+            }
+
+            function startListTimers() {
+                 document.querySelectorAll('.list-countdown').forEach(el => {
+                    const endDateStr = el.dataset.endDate;
+                    if (!endDateStr || endDateStr === 'null') {
+                        el.textContent = 'غير محدد';
+                        el.closest('tr').querySelector('.status-cell').innerHTML = `<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">متاح</span>`;
+                        return;
+                    }
+                    const targetDateTime = new Date(endDateStr).getTime();
+                    
+                    const intervalId = setInterval(() => {
+                        const now = new Date().getTime();
+                        const distance = targetDateTime - now;
+                        const statusCell = el.closest('tr').querySelector('.status-cell');
+
+                        if (distance < 0) {
+                            clearInterval(intervalId);
+                            el.textContent = "مغلق";
+                            statusCell.innerHTML = `<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">مغلق</span>`;
+                            return;
+                        }
+
+                        const d = Math.floor(distance / 86400000), h = Math.floor((distance % 86400000) / 3600000), m = Math.floor((distance % 3600000) / 60000), s = Math.floor((distance % 60000) / 1000);
+                        el.innerHTML = `<div class="flex items-baseline gap-x-2"><span>${d}ي</span><span>${h}س</span><span>${m}د</span><span class="text-blue-500">${s}ث</span></div>`;
+                        statusCell.innerHTML = `<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">نشط</span>`;
+                    }, 1000);
+                    el.dataset.intervalId = intervalId;
+                });
+            }
+            
+            // --- Form View Logic ---
+            function addOrRemoveAuctionDetails(card, show) {
+                const placeholder = card.querySelector('.auction-details-placeholder');
+                if (show) {
+                    if (!placeholder.hasChildNodes() || placeholder.innerHTML.trim() === '') {
+                        const auctionTemplate = document.getElementById('auction-details-template').content.cloneNode(true);
+                        placeholder.appendChild(auctionTemplate);
+                        setupAuctionListeners(card);
+                    }
+                    placeholder.classList.remove('hidden');
+                } else {
+                    const animatedSection = placeholder.querySelector('.animated-section');
+                    if (animatedSection && animatedSection.dataset.timerId) {
+                        clearInterval(parseInt(animatedSection.dataset.timerId));
+                    }
+                    placeholder.innerHTML = '';
+                    placeholder.classList.add('hidden');
+                }
+            }
+
+            function addOrRemoveDirectOrderInsuranceDisplay(card, show) {
+                const placeholder = card.querySelector('.direct-order-insurance-placeholder');
+                 if (show) {
+                    if (!placeholder.hasChildNodes()) {
+                        const directOrderInsuranceTemplate = document.getElementById('direct-order-insurance-display-template').content.cloneNode(true);
+                        placeholder.appendChild(directOrderInsuranceTemplate);
+                    }
+                    placeholder.classList.remove('hidden');
+                } else {
+                    placeholder.innerHTML = '';
+                    placeholder.classList.add('hidden');
+                }
+            }
+            
+            function handleMechanismChange() {
+                const mechanism = uiElements.formMechanismTypeSelect.value;
+                const isAuction = mechanism === 'auction';
+                const isDirectOrder = mechanism === 'direct_order';
+                const isInitiative = mechanism === 'initiative';
+                
+                uiElements.initiativeDetailsContainer.classList.toggle('hidden', !isInitiative);
+
+                if (isInitiative) {
+                    uiElements.initiativeTypeSelect.required = true;
+                    uiElements.initiativeTypeSelect.innerHTML = '<option value="" selected disabled>-- اختر النوع --</option>';
+                    initiativeDefinitions.forEach(def => {
+                        uiElements.initiativeTypeSelect.add(new Option(def.name, def.id));
+                    });
+                    uiElements.initiativeTypeSelect.dispatchEvent(new Event('change'));
+                } else {
+                     uiElements.initiativeTypeSelect.required = false;
+                     document.getElementById('currency-egp').disabled = false;
+                     document.getElementById('currency-usd').disabled = false;
+                }
+
+                uiElements.formLandsContainer.querySelectorAll('.land-card').forEach(card => {
+                    addOrRemoveAuctionDetails(card, isAuction);
+                    addOrRemoveDirectOrderInsuranceDisplay(card, isDirectOrder || isInitiative);
+                    
+                    const brochureContainer = card.querySelector('.brochure-container');
+                    if (brochureContainer) {
+                        brochureContainer.classList.toggle('hidden', isDirectOrder || isInitiative);
+                    }
+                    
+                    const areaField = card.querySelector('.area-field');
+                    if (areaField) {
+                         areaField.dispatchEvent(new Event('change', { bubbles: true })); 
+                    }
+                });
+            }
+            
+            function handleInitiativeTypeChange() {
+                const selectedInitiativeId = uiElements.initiativeTypeSelect.value;
+                const selectedInitiative = initiativeDefinitions.find(def => def.id === selectedInitiativeId);
+                
+                if (!selectedInitiative) {
+                    uiElements.initiativeConditionsDisplay.textContent = '';
+                    uiElements.initiativeConditionsDisplay.classList.add('hidden');
+                    return;
+                }
+                
+                uiElements.initiativeConditionsDisplay.textContent = selectedInitiative.conditions;
+                uiElements.initiativeConditionsDisplay.classList.remove('hidden');
+            }
+
+            function handleCurrencyChange() {
+                 uiElements.formLandsContainer.querySelectorAll('.land-card').forEach(card => {
+                     card.querySelector('.price-field')?.dispatchEvent(new Event('input', {bubbles: true}));
+                     card.querySelector('[data-cost-type="base"]')?.dispatchEvent(new Event('input', {bubbles: true}));
+                 });
+            }
+
+            const addLandCard = (landData = null) => {
+                const cardFragment = document.getElementById('land-card-template').content.cloneNode(true);
+                const cardElement = cardFragment.querySelector('.land-card');
+                
+                uiElements.formLandsContainer.appendChild(cardElement);
+                
+                const landSelect = cardElement.querySelector('.land-select');
+                landSelect.innerHTML = '<option value="" selected disabled>-- اختر رقم وموقع الأرض --</option>';
+                availableLands.forEach(land => landSelect.add(new Option(`${land.id} - ${land.center} - ${land.village}`, land.id)));
+
+                if (landData) {
+                    landSelect.value = landData.landId;
+                    populateLandDetails(cardElement, landData.landId);
+
+                    const priceField = cardElement.querySelector('.price-field');
+                    priceField.value = landData.pricePerFeddans;
+                    priceField.dispatchEvent(new Event('input', { bubbles: true }));
+                    
+                    if (landData.brochureFile) cardElement.fileObject = landData.brochureFile;
+                    if (landData.brochureFileName) {
+                        cardElement.querySelector('.file-name-display').textContent = landData.brochureFileName;
+                        cardElement.querySelector('.view-brochure-btn').classList.remove('hidden');
+                    }
+                }
+                
+                const mechanism = uiElements.formMechanismTypeSelect.value;
+                addOrRemoveAuctionDetails(cardElement, mechanism === 'auction');
+                addOrRemoveDirectOrderInsuranceDisplay(cardElement, mechanism === 'direct_order' || mechanism === 'initiative');
+                cardElement.querySelector('.brochure-container')?.classList.toggle('hidden', mechanism === 'direct_order' || mechanism === 'initiative');
+
+                if (mechanism === 'auction' && landData && landData.auctionEndDate) {
+                    const auctionDate = new Date(landData.auctionEndDate);
+                    const dateInput = cardElement.querySelector('.auction-date');
+                    const timeInput = cardElement.querySelector('.auction-time');
+                    if(dateInput && timeInput) {
+                        dateInput.valueAsDate = auctionDate;
+                        timeInput.value = auctionDate.toTimeString().substring(0,5);
+                        timeInput.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                    if (landData.brochureCosts) {
+                        Object.entries(landData.brochureCosts).forEach(([key, value]) => {
+                            const costInput = cardElement.querySelector(`[data-cost-type="${key}"]`);
+                            if(costInput) costInput.value = value;
+                        });
+                        cardElement.querySelector('.price-field').dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                    if (landData.initialInsurancePrice) {
+                        const insurancePriceInput = cardElement.querySelector('.initial-insurance-price');
+                        if(insurancePriceInput) insurancePriceInput.value = formatCurrency(landData.initialInsurancePrice, "EGP");
+                    }
+                } else if ((mechanism === 'direct_order' || mechanism === 'initiative') && landData && landData.initialInsurancePrice) {
+                    const calculatedInsuranceInput = cardElement.querySelector('.direct-order-calculated-insurance-price');
+                    if (calculatedInsuranceInput) calculatedInsuranceInput.value = formatCurrency(landData.initialInsurancePrice, 'EGP');
+                }
+            };
+            
+            function populateForm(offering) {
+                uiElements.formMechanismTypeSelect.value = offering.mechanism;
+                handleMechanismChange(); 
+                if(offering.mechanism === 'initiative' && offering.initiativeType) {
+                    uiElements.initiativeTypeSelect.value = offering.initiativeType;
+                    handleInitiativeTypeChange();
+                }
+                document.querySelector(`input[name="currency"][value="${offering.currency || 'EGP'}"]`).checked = true;
+                offering.lands.forEach(landDetail => addLandCard(landDetail));
+            }
+
+            function populateLandDetails(cardElement, selectedId) {
+                const land = availableLands.find(l => l.id === parseInt(selectedId));
+                if (land) {
+                    cardElement.querySelector('.center-field').value = land.center;
+                    cardElement.querySelector('.village-field').value = land.village;
+                    const areaField = cardElement.querySelector('.area-field');
+                    areaField.value = land.areaFeddans;
+                    areaField.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            }
+
+            function calculateLandValues(cardElement) {
+                const areaField = cardElement.querySelector('.area-field');
+                const priceField = cardElement.querySelector('.price-field');
+                const totalValueField = cardElement.querySelector('.total-value-field');
+
+                const area = parseFloat(areaField.value) || 0;
+                const price = parseFloat(priceField.value) || 0;
+                const total = area * price;
+                const currency = document.querySelector('input[name="currency"]:checked').value;
+                totalValueField.value = total > 0 ? formatCurrency(total, currency) : '';
+                
+                const mechanism = uiElements.formMechanismTypeSelect.value;
+                if (mechanism === 'auction') {
+                    const insuranceValue = calculateInitialInsurance(area);
+                    const brochureBasePrice = calculateBrochureBasePrice(insuranceValue);
+                    const basePriceInput = cardElement.querySelector('[data-cost-type="base"]');
+                    if(basePriceInput) {
+                        basePriceInput.value = brochureBasePrice;
+                        basePriceInput.dispatchEvent(new Event('input', {bubbles:true}));
+                    }
+                    const insurancePriceInput = cardElement.querySelector('.initial-insurance-price');
+                    if(insurancePriceInput) insurancePriceInput.value = formatCurrency(insuranceValue, 'EGP');
+
+                } else if (mechanism === 'direct_order' || mechanism === 'initiative') {
+                    const calculatedInsurance = price * area;
+                    const insuranceInput = cardElement.querySelector('.direct-order-calculated-insurance-price');
+                    if (insuranceInput) {
+                        const currencyForCalc = document.querySelector('input[name="currency"]:checked').value;
+                        insuranceInput.value = formatCurrency(calculatedInsurance, currencyForCalc);
+                        insuranceInput.previousElementSibling.textContent = `قيمة التأمين السنوي (${currencyForCalc})`;
+                    }
+                }
+            }
+
+            function setupAuctionListeners(cardElement) {
+                const totalSpan = cardElement.querySelector('.brochure-total');
+                const basePriceInput = cardElement.querySelector('[data-cost-type="base"]');
+                const vatInput = cardElement.querySelector('[data-cost-type="vat"]');
+                const stampInput = cardElement.querySelector('[data-cost-type="stamp"]');
+                const supportInput = cardElement.querySelector('[data-cost-type="support"]');
+                
+                if(stampInput) stampInput.value = auctionParameters.brochureAddons.stamp;
+                if(supportInput) supportInput.value = auctionParameters.brochureAddons.support;
+                
+                function calculateTotal() {
+                    const basePrice = parseFloat(basePriceInput.value) || 0;
+                    const vatAmount = basePrice * (auctionParameters.brochureAddons.vatPercent / 100);
+                    if(vatInput) vatInput.value = vatAmount.toFixed(2);
+                    let total = basePrice + vatAmount + (parseFloat(stampInput.value) || 0) + (parseFloat(supportInput.value) || 0);
+                    const currency = document.querySelector('input[name="currency"]:checked').value;
+                    if(totalSpan) totalSpan.textContent = formatCurrency(total, currency);
+                }
+                
+                calculateTotal();
+            }
+            
+            // --- Parameters Screen Logic ---
+            function showParameterTab(tabName) {
+                uiElements.parametersTabContainer.querySelectorAll('.tab-button').forEach(button => {
+                    const isActive = button.dataset.tab === tabName;
+                    button.classList.toggle('active-tab', isActive);
+                    button.classList.toggle('border-blue-500', isActive);
+                    button.classList.toggle('text-blue-600', isActive);
+                    button.classList.toggle('border-transparent', !isActive);
+                });
+                uiElements.auctionParamsContent.classList.toggle('hidden', tabName !== 'auction-params');
+                uiElements.directOrderParamsContent.classList.toggle('hidden', tabName !== 'direct-order-params');
+                uiElements.initiativeParamsContent.classList.toggle('hidden', tabName !== 'initiative-params');
+                uiElements.generalParamsContent.classList.toggle('hidden', tabName !== 'general-params');
+            }
+            
+            function saveParameters() {
+                 const decisionNumber = document.getElementById('board-decision-number').value;
+                 if (!decisionNumber || !document.getElementById('board-decision-attachment').files.length) { return; }
+                
+                parametersHistory.push({ user: 'المستخدم الحالي', timestamp: new Date().toISOString(), action: `تحديث المحددات بقرار ${decisionNumber}.` });
+                uiElements.boardDecisionModal.classList.add('hidden');
+                renderAllParameters();
+            }
+
+            // --- Render Parameters Functions ---
+            function createTierRow(container, templateId, data = {}) {
+                const template = document.getElementById(templateId);
+                const rowFragment = template.content.cloneNode(true);
+                const tr = rowFragment.querySelector('tr');
+                
+                if (tr.querySelector('.tier-name')) tr.querySelector('.tier-name').value = data.name || '';
+                if (tr.querySelector('.tier-from')) tr.querySelector('.tier-from').value = data.from === 0 ? 0 : (data.from || '');
+                if (tr.querySelector('.tier-to')) {
+                    const toInput = tr.querySelector('.tier-to');
+                    toInput.value = data.to === Infinity ? '' : (data.to || '');
+                    if (data.to === Infinity) toInput.placeholder = "أو أكثر";
+                }
+                if (tr.querySelector('.tier-price')) tr.querySelector('.tier-price').value = data.price || '';
+                
+                container.appendChild(tr);
+            };
+
+            function createInitiativeRow(data = {}) {
+                const template = document.getElementById('initiative-definition-row-template');
+                const rowFragment = template.content.cloneNode(true);
+                const tr = rowFragment.querySelector('tr');
+                
+                tr.querySelector('.initiative-name').value = data.name || '';
+                tr.querySelector('.initiative-conditions').value = data.conditions || '';
+                
+                uiElements.initiativeDefinitionsContainer.appendChild(tr);
+            }
+
+            function renderAllParameters() {
+                renderTiers(uiElements.insuranceTiersContainer, auctionParameters.insuranceTiers, 'tier-row-template');
+                renderTiers(uiElements.brochureTiersContainer, auctionParameters.brochureTiers, 'brochure-tier-row-template');
+                renderBrochurePricingParams();
+                renderAuctionFinalInsuranceParams();
+                renderDirectOrderParameters();
+                renderInitiativeParameters();
+                renderGeneralParameters();
+                uiElements.viewParametersHistoryBtn.style.display = parametersHistory.length > 0 ? 'flex' : 'none';
+            }
+            
+            function renderTiers(container, dataArray, templateId) {
+                if(!container) return;
+                container.innerHTML = '';
+                dataArray.forEach(data => createTierRow(container, templateId, data));
+            }
+
+            function renderAuctionFinalInsuranceParams() {
+                document.getElementById('final-insurance-percentage-y1').value = auctionParameters.finalInsurancePercentages[0];
+                document.getElementById('final-insurance-percentage-y2').value = auctionParameters.finalInsurancePercentages[1];
+                document.getElementById('final-insurance-percentage-y3').value = auctionParameters.finalInsurancePercentages[2];
+                document.getElementById('final-insurance-deadline-days').value = auctionParameters.paymentDeadlineDays;
+                renderInsuranceDifferenceExample(document.getElementById('insurance-difference-example-container'));
+            }
+            function renderDirectOrderParameters() { /* ... */ }
+            function renderInitiativeParameters() { /* ... */ }
+            function renderGeneralParameters() { /* ... */ }
+            function renderBrochurePricingParams() { /* ... */ }
+            
+            // --- Land Requests View Logic ---
+            function renderRequestsSummaryView(filter = 'all') {
+                const tableBody = uiElements.requestsSummaryTableBody;
+                tableBody.innerHTML = '';
+                
+                const requestsByLand = landRequestsData.reduce((acc, req) => {
+                    acc[req.landId] = (acc[req.landId] || 0) + 1;
+                    return acc;
+                }, {});
+
+                const landsWithRequests = Object.keys(requestsByLand).map(id => parseInt(id));
+                
+                landsWithRequests.forEach(landId => {
+                    const land = availableLands.find(l => l.id === landId);
+                    const offering = offeringsList.find(o => o.lands.some(l => l.landId === landId));
+
+                    if(!land || !offering) return;
+
+                    if (filter !== 'all' && offering.mechanism !== filter) {
+                        return;
+                    }
+
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-gray-50";
+                    tr.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-800">${land.id}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${land.center} - ${land.village}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${mechanismMap[offering.mechanism] || offering.mechanism}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800"><span class="bg-blue-100 text-blue-800 text-xs font-medium mr-2 px-2.5 py-0.5 rounded-full">${requestsByLand[landId]}</span></td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <button class="view-requests-btn text-indigo-600 hover:text-indigo-900" data-land-id="${landId}">عرض الطلبات</button>
+                        </td>
+                    `;
+                    tableBody.appendChild(tr);
+                });
+            }
+
+            function renderRequestDetailsView(landId) {
+                currentLandIdForDetails = landId;
+                showView('request-details-view');
+
+                const land = availableLands.find(l => l.id === landId);
+                const requests = landRequestsData.filter(req => req.landId === landId);
+                const offering = offeringsList.find(o => o.lands.some(l => l.landId === landId));
+                const landOfferingDetails = offering.lands.find(l => l.landId === landId);
+                
+                uiElements.detailsLandIdSpan.textContent = landId;
+                
+                uiElements.requestLandDetailsCard.innerHTML = `
+                    <div><span class="font-semibold text-gray-600">المركز:</span><p class="text-gray-800">${land.center}</p></div>
+                    <div><span class="font-semibold text-gray-600">القرية:</span><p class="text-gray-800">${land.village}</p></div>
+                    <div><span class="font-semibold text-gray-600">المساحة:</span><p class="text-gray-800">${land.areaFeddans} فدان</p></div>
+                    <div><span class="font-semibold text-gray-600">سعر الفدان:</span><p class="text-gray-800">${formatCurrency(landOfferingDetails.pricePerFeddans, offering.currency)}</p></div>
+                `;
+
+                const tableBody = uiElements.requestsForLandTableBody;
+                tableBody.innerHTML = '';
+                if (requests.length === 0) {
+                    tableBody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-gray-500">لا توجد طلبات لهذه الأرض.</td></tr>`;
+                    return;
+                }
+
+                requests.forEach(req => {
+                    const statusClasses = {
+                        pending: 'bg-yellow-100 text-yellow-800',
+                        approved: 'bg-green-100 text-green-800',
+                        rejected: 'bg-red-100 text-red-800',
+                        attachment_rejected: 'bg-orange-100 text-orange-800'
+                    };
+                    const statusText = {
+                        pending: 'قيد المراجعة',
+                        approved: 'مقبول',
+                        rejected: 'مرفوض',
+                        attachment_rejected: 'مرفق مرفوض'
+                    };
+
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-gray-50";
+                    tr.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">${req.applicantName}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${req.requestDate}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClasses[req.status]}">${statusText[req.status]}</span></td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <button class="view-single-request-btn text-indigo-600 hover:text-indigo-900" data-request-id="${req.requestId}">عرض التفاصيل</button>
+                        </td>
+                    `;
+                    tableBody.appendChild(tr);
+                });
+            }
+            
+            function renderSingleRequestDetailsView(requestId) {
+                showView('single-request-details-view');
+                const request = landRequestsData.find(r => r.requestId === requestId);
+                if (!request) return;
+
+                const statusClasses = { pending: 'bg-yellow-100 text-yellow-800', approved: 'bg-green-100 text-green-800', rejected: 'bg-red-100 text-red-800', attachment_rejected: 'bg-orange-100 text-orange-800' };
+                const statusText = { pending: 'قيد المراجعة', approved: 'مقبول', rejected: 'مرفوض', attachment_rejected: 'مرفق مرفوض' };
+
+                uiElements.applicantDetailsCard.innerHTML = `
+                    <div><span class="font-semibold text-gray-600">اسم مقدم الطلب:</span><p class="text-gray-800">${request.applicantName}</p></div>
+                    <div><span class="font-semibold text-gray-600">تاريخ الطلب:</span><p class="text-gray-800">${request.requestDate}</p></div>
+                    <div><span class="font-semibold text-gray-600">الحالة:</span><p><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClasses[request.status]}">${statusText[request.status]}</span></p></div>
+                    ${request.finalPrice ? `<div><span class="font-semibold text-gray-600">السعر النهائي المقدم:</span><p class="text-gray-800">${formatCurrency(request.finalPrice, 'EGP')}</p></div>` : ''}
+                `;
+
+                uiElements.proposedProjectText.textContent = request.proposedProject || 'لا يوجد وصف للمشروع.';
+
+                const attachmentsList = uiElements.attachmentsList;
+                attachmentsList.innerHTML = '';
+                if (request.attachments && request.attachments.length > 0) {
+                    request.attachments.forEach((file, index) => {
+                        const li = document.createElement('li');
+                        li.className = 'p-3 bg-gray-50 rounded-lg flex items-center justify-between';
+                        
+                        let statusBadge = '';
+                        if (file.status === 'verified') {
+                            statusBadge = `<span class="text-xs font-semibold text-green-600 bg-green-100 px-2 py-1 rounded-full">تم التحقق</span>`;
+                        } else if (file.status === 'rejected') {
+                            statusBadge = `<span class="text-xs font-semibold text-red-600 bg-red-100 px-2 py-1 rounded-full">مرفوض</span>`;
+                        }
+
+                        li.innerHTML = `
+                            <a href="#" class="text-blue-600 hover:underline flex items-center">
+                                <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
+                                ${file.name}
+                            </a>
+                            <div class="flex items-center space-x-2 space-x-reverse">
+                                ${statusBadge}
+                                <button data-request-id="${request.requestId}" data-attachment-index="${index}" class="verify-attachment-btn p-1 text-green-500 hover:bg-green-100 rounded-full ${file.status !== 'pending' ? 'hidden' : ''}">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                </button>
+                                <button data-request-id="${request.requestId}" data-attachment-index="${index}" class="reject-attachment-btn p-1 text-red-500 hover:bg-red-100 rounded-full ${file.status !== 'pending' ? 'hidden' : ''}">
+                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                </button>
+                            </div>
+                        `;
+                        attachmentsList.appendChild(li);
+                    });
+                } else {
+                    attachmentsList.innerHTML = `<li class="text-sm text-gray-500">لا توجد مرفقات.</li>`;
+                }
+                
+                uiElements.finalDecisionContainer.innerHTML = '';
+                if(request.status === 'approved') {
+                    const finalDecisionTemplate = document.getElementById('final-decision-template').content.cloneNode(true);
+                    uiElements.finalDecisionContainer.appendChild(finalDecisionTemplate);
+                }
+                
+                renderWorkflow(request.workflowStage, request.status);
+            }
+
+            // --- Accounts View Logic ---
+            function renderCustomerAccounts() {
+                const tableBody = uiElements.customerAccountsTableBody;
+                if (!tableBody) return;
+                tableBody.innerHTML = '';
+                customerAccountsData.forEach(acc => {
+                    const tr = document.createElement('tr');
+                    const statusClasses = {
+                        active: 'bg-green-100 text-green-800',
+                        inactive: 'bg-gray-100 text-gray-800',
+                        overdue: 'bg-red-100 text-red-800',
+                    };
+                    const statusText = {
+                        active: 'نشط',
+                        inactive: 'غير نشط',
+                        overdue: 'متأخر',
+                    };
+                    tr.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${acc.name}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${acc.landCount}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatCurrency(acc.totalDue, acc.currency)}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClasses[acc.status] || ''}">${statusText[acc.status] || ''}</span></td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <button class="view-customer-details-btn text-indigo-600 hover:text-indigo-900" data-customer-id="${acc.id}">عرض التفاصيل</button>
+                        </td>
+                    `;
+                    tableBody.appendChild(tr);
+                });
+            }
+
+            function renderCustomerAccountDetailView(customerId) {
+                const customer = customerAccountsData.find(c => c.id === customerId);
+                if (!customer) return;
+
+                showView('customer-account-detail-view');
+                uiElements.detailCustomerNameSpan.textContent = customer.name;
+
+                // Render Land and Contract Details
+                const gracePeriod = generalGracePeriodData[customer.mechanism];
+                const gracePeriodText = gracePeriod ? `${gracePeriod.years} سنوات و ${gracePeriod.months} شهور` : 'N/A';
+                
+                const createDetailItem = (label, value) => `
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">${label}</label>
+                        <p class="text-lg p-2 bg-gray-100 rounded-md">${value}</p>
+                    </div>`;
+
+                const createProfileItem = (label, value) => `
+                     <div class="md:col-span-2 lg:col-span-3">
+                        <label class="block text-sm font-medium text-gray-600 mb-1">${label}</label>
+                        <p class="text-base p-2 bg-gray-100 rounded-md h-full">${value}</p>
+                    </div>`;
+
+                uiElements.customerLandDetailsCard.innerHTML = `
+                    ${createDetailItem('آلية التعامل', mechanismMap[customer.mechanism])}
+                    ${createDetailItem('تاريخ تقديم الطلب', customer.submissionDate || 'غير محدد')}
+                    ${createDetailItem('تاريخ استلام الأرض', customer.receiptDate || 'غير محدد')}
+                    ${createDetailItem('فترة الإعفاء من القيمة الإيجارية', gracePeriodText)}
+                    ${customer.companyProfile ? createProfileItem('نبذة عن الشركة', customer.companyProfile) : ''}
+                `;
+
+                // Render Pre-Rental Payments
+                const preRentalBody = uiElements.preRentalPaymentsTableBody;
+                const preRentalFoot = uiElements.preRentalPaymentsTableFoot;
+                preRentalBody.innerHTML = '';
+                preRentalFoot.innerHTML = '';
+                if (customer.preRentalPayments && customer.preRentalPayments.length > 0) {
+                    uiElements.preRentalPaymentsSection.classList.remove('hidden');
+                    let totalPreRental = 0;
+                    customer.preRentalPayments.forEach(payment => {
+                        totalPreRental += payment.amount;
+                        const tr = document.createElement('tr');
+                        tr.className = "border-b hover:bg-gray-50";
+                        tr.innerHTML = `
+                            <td class="p-3">${payment.item}</td>
+                            <td class="p-3">${formatCurrency(payment.amount, customer.currency)}</td>
+                            <td class="p-3">${payment.date}</td>
+                            <td class="p-3">${payment.notes}</td>
+                        `;
+                        preRentalBody.appendChild(tr);
+                    });
+                    const trFoot = document.createElement('tr');
+                    trFoot.innerHTML = `
+                        <td class="p-3" colspan="1">الإجمالي</td>
+                        <td class="p-3 text-blue-600" colspan="3">${formatCurrency(totalPreRental, customer.currency)}</td>
+                    `;
+                    preRentalFoot.appendChild(trFoot);
+                } else {
+                    uiElements.preRentalPaymentsSection.classList.add('hidden');
+                }
+
+                // Render Auction Specific Section (Final Insurance & Difference)
+                const auctionSection = uiElements.auctionSpecificSection;
+                if (customer.mechanism === 'auction' && customer.finalInsurance) {
+                    auctionSection.classList.remove('hidden');
+                    const finalInsBody = uiElements.finalInsuranceTableBody;
+                    finalInsBody.innerHTML = '';
+                    const insDiffBody = uiElements.insuranceDifferenceTableBody;
+                    insDiffBody.innerHTML = '';
+                    const insDiffFoot = uiElements.insuranceDifferenceTableFoot;
+                    insDiffFoot.innerHTML = '';
+                    
+                    const payment = customer.finalInsurance;
+                    const statusClass = payment.status === 'paid' ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold';
+                    const statusText = payment.status === 'paid' ? 'مدفوع' : 'مستحق';
+                    
+                    finalInsBody.innerHTML = `
+                        <tr class="border-b hover:bg-gray-50">
+                            <td class="p-3">قيمة التأمين النهائي المستحق</td>
+                            <td class="p-3">${formatCurrency(payment.due, customer.currency)}</td>
+                            <td class="p-3 ${statusClass}">${statusText}</td>
+                        </tr>`;
+
+                    const amountToPay = payment.due - payment.initialPaid;
+                    insDiffBody.innerHTML = `
+                        <tr class="border-b">
+                            <td class="p-3">التأمين النهائي المطلوب</td>
+                            <td class="p-3">${formatCurrency(payment.due, customer.currency)}</td>
+                        </tr>
+                        <tr class="border-b">
+                            <td class="p-3">(-) التأمين الابتدائي المدفوع</td>
+                            <td class="p-3 text-red-600">(${formatCurrency(payment.initialPaid, customer.currency)})</td>
+                        </tr>`;
+                    insDiffFoot.innerHTML = `
+                         <tr>
+                            <td class="p-3">المبلغ المطلوب سداده</td>
+                            <td class="p-3 text-blue-600">${formatCurrency(amountToPay, customer.currency)}</td>
+                        </tr>`;
+
+                } else {
+                    auctionSection.classList.add('hidden');
+                }
+
+
+                // Render Due Invoices
+                const invoicesTableBody = uiElements.customerInvoicesTableBody;
+                invoicesTableBody.innerHTML = '';
+                const customerInvoices = [
+                    ...overdueInvoicesData.filter(inv => inv.customerName === customer.name),
+                    ...dueTodayInvoicesData.filter(inv => inv.customerName === customer.name)
+                ];
+
+                if (customerInvoices.length === 0) {
+                    invoicesTableBody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-gray-500">لا توجد فواتير مستحقة لهذا العميل.</td></tr>`;
+                } else {
+                    customerInvoices.forEach(inv => {
+                        const isOverdue = 'daysOverdue' in inv;
+                        const statusClass = isOverdue ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-800';
+                        const statusText = isOverdue ? `مستحقة` : 'مستحقة اليوم';
+
+                        const tr = document.createElement('tr');
+                        tr.className = "border-b hover:bg-gray-50";
+                        tr.innerHTML = `
+                            <td class="p-3">${inv.invoiceId}</td>
+                            <td class="p-3">${inv.description}</td>
+                            <td class="p-3">${inv.dueDate || new Date().toISOString().split('T')[0]}</td>
+                            <td class="p-3">${formatCurrency(inv.amount, inv.currency)}</td>
+                            <td class="p-3"><span class="py-1 px-3 rounded-full text-sm font-semibold ${statusClass}">${statusText}</span></td>
+                            <td class="p-3"><button class="bg-blue-500 hover:bg-blue-600 text-white py-1 px-4 rounded-md transition-colors view-invoice-details-btn" data-invoice-id="${inv.invoiceId}">عرض</button></td>
+                        `;
+                        invoicesTableBody.appendChild(tr);
+                    });
+                }
+                
+                renderPaymentSchedule(customerId);
+            }
+
+            function renderOverdueInvoices() {
+                const tableBody = uiElements.overdueInvoicesTableBody;
+                if (!tableBody) return;
+                tableBody.innerHTML = '';
+                overdueInvoicesData.forEach(inv => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${inv.invoiceId}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${inv.customerName}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${inv.dueDate}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-red-600 font-bold">${formatCurrency(inv.amount, inv.currency)}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${inv.daysOverdue} يوم</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <button class="send-reminder-btn text-indigo-600 hover:text-indigo-900" data-invoice-id="${inv.invoiceId}">إرسال تذكير</button>
+                        </td>
+                    `;
+                    tableBody.appendChild(tr);
+                });
+            }
+
+            function renderDueTodayInvoices() {
+                const tableBody = uiElements.dueTodayInvoicesTableBody;
+                if (!tableBody) return;
+                tableBody.innerHTML = '';
+                dueTodayInvoicesData.forEach(inv => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${inv.invoiceId}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${inv.customerName}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-blue-600 font-bold">${formatCurrency(inv.amount, inv.currency)}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <button class="view-invoice-details-btn text-indigo-600 hover:text-indigo-900" data-invoice-id="${inv.invoiceId}">عرض الفاتورة</button>
+                        </td>
+                    `;
+                    tableBody.appendChild(tr);
+                });
+            }
+
+            function renderCollectedRevenues() {
+                const tableBody = uiElements.collectedRevenuesTableBody;
+                if (!tableBody) return;
+                tableBody.innerHTML = '';
+                collectedRevenuesData.forEach(rec => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${rec.receiptId}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${rec.customerName}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${rec.itemType}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${rec.collectionDate}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600 font-bold">${formatCurrency(rec.amount, rec.currency)}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${rec.paymentMethod}</td>
+                    `;
+                    tableBody.appendChild(tr);
+                });
+            }
+            
+            function renderInvoiceDetailView(invoiceId) {
+                const invoice = dueTodayInvoicesData.find(inv => inv.invoiceId === invoiceId) || overdueInvoicesData.find(inv => inv.invoiceId === invoiceId);
+                const items = invoiceDetailsData[invoiceId];
+                if (!invoice || !items) return;
+
+                showView('invoice-detail-view');
+                uiElements.detailInvoiceIdSpan.textContent = invoice.invoiceId;
+                uiElements.invoiceHeader.innerHTML = `
+                    <div><p class="text-sm text-gray-500">العميل</p><p class="font-semibold text-gray-800">${invoice.customerName}</p></div>
+                    <div><p class="text-sm text-gray-500">تاريخ الاستحقاق</p><p class="font-semibold text-gray-800">${invoice.dueDate || new Date().toISOString().split('T')[0]}</p></div>
+                `;
+
+                const tableBody = uiElements.invoiceItemsTableBody;
+                tableBody.innerHTML = '';
+                let total = 0;
+                items.forEach(item => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">${item.item}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.description}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-left text-sm text-gray-700">${formatCurrency(item.amount, item.currency)}</td>
+                    `;
+                    tableBody.appendChild(tr);
+                    total += item.amount;
+                });
+                uiElements.invoiceTotalAmount.textContent = formatCurrency(total, items[0].currency);
+            }
+
+            function renderWorkflow(currentStageKey, requestStatus) {
+                const workflowSteps = [
+                    { key: 'submission', label: 'تقديم الطلب' },
+                    { key: 'technical_review', label: 'المراجعة الفنية' },
+                    { key: 'financial_review', label: 'المراجعة المالية' },
+                    { key: 'governor_decision', label: 'قرار المحافظ' }
+                ];
+                const container = uiElements.requestWorkflowContainer;
+                container.innerHTML = '';
+
+                const currentStageIndex = workflowSteps.findIndex(step => step.key === currentStageKey);
+                const isRejected = requestStatus === 'rejected' || requestStatus === 'attachment_rejected';
+
+                workflowSteps.forEach((step, index) => {
+                    const stepDiv = document.createElement('div');
+                    stepDiv.className = 'workflow-step';
+
+                    let statusClass = 'pending';
+                    if (isRejected && index === currentStageIndex) {
+                        statusClass = 'rejected';
+                    } else if (index < currentStageIndex) {
+                        statusClass = 'completed';
+                    } else if (index === currentStageIndex) {
+                        statusClass = 'active';
+                    }
+                    
+                    stepDiv.classList.add(statusClass);
+
+                    stepDiv.innerHTML = `
+                        ${index > 0 ? '<div class="workflow-line"></div>' : ''}
+                        <div class="workflow-circle">${index + 1}</div>
+                        <div class="workflow-label">${step.label}</div>
+                    `;
+                    container.appendChild(stepDiv);
+                });
+            }
+            
+            function renderInsuranceDifferenceExample(container, customData = null) {
+                if (!container) return;
+
+                const template = document.getElementById('insurance-difference-example-template').content.cloneNode(true);
+                const tableBody = template.getElementById('insurance-difference-example-body');
+                
+                const initialPrice = customData ? customData.pricePerFeddans : 10000;
+                const area = customData ? customData.areaFeddans : 100;
+                const annualIncreaseRate = customData ? (customData.annualIncreasePercent / 100) : 0.02;
+
+                let currentPricePerFeddans = initialPrice;
+                let totalInsurancePaid = 0;
+
+                for (let i = 0; i < 3; i++) {
+                    const annualRent = currentPricePerFeddans * area;
+                    const insurancePercentage = auctionParameters.finalInsurancePercentages[i];
+                    const insuranceValue = annualRent * (insurancePercentage / 100);
+                    const insuranceDifference = i === 0 ? insuranceValue : insuranceValue - totalInsurancePaid;
+                    totalInsurancePaid += insuranceDifference;
+
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="px-4 py-2">السنة ${i + 1}</td>
+                        <td class="px-4 py-2">${formatCurrency(currentPricePerFeddans, 'EGP')}</td>
+                        <td class="px-4 py-2">${formatCurrency(annualRent, 'EGP')}</td>
+                        <td class="px-4 py-2">${insurancePercentage}%</td>
+                        <td class="px-4 py-2">${formatCurrency(insuranceValue, 'EGP')}</td>
+                        <td class="px-4 py-2 font-bold">${formatCurrency(insuranceDifference, 'EGP')}</td>
+                    `;
+                    tableBody.appendChild(tr);
+                    currentPricePerFeddans *= (1 + annualIncreaseRate);
+                }
+                
+                container.innerHTML = '';
+                container.appendChild(template);
+            }
+
+            function renderPaymentSchedule(customerId) {
+                const customer = customerAccountsData.find(c => c.id === customerId);
+                if (!customer || !customer.contractStartDate || !customer.baseRent) {
+                    uiElements.paymentScheduleTableBody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-gray-500">لا توجد بيانات تعاقد لعرض الجدولة.</td></tr>`;
+                    return;
+                }
+
+                const tableBody = uiElements.paymentScheduleTableBody;
+                tableBody.innerHTML = '';
+                const startDate = new Date(customer.contractStartDate);
+                const increaseRate = (generalAnnualIncreaseData[customer.mechanism]?.total || 0) / 100;
+                let currentRent = customer.baseRent;
+                const today = new Date();
+
+                for (let i = 0; i < 25; i++) {
+                    const year = startDate.getFullYear() + i;
+                    const dueDate = new Date(year, startDate.getMonth(), startDate.getDate());
+                    
+                    let status, statusClass;
+                    if (dueDate < today) {
+                        status = 'مدفوع';
+                        statusClass = 'bg-green-100 text-green-800';
+                    } else if (dueDate.getFullYear() === today.getFullYear()) {
+                        status = 'مستحق';
+                        statusClass = 'bg-blue-100 text-blue-800';
+                    } else {
+                        status = 'قادم';
+                        statusClass = 'bg-gray-100 text-gray-800';
+                    }
+
+                    const baseRentForYear = (i === 0) ? customer.baseRent : currentRent;
+                    const annualIncrease = (i === 0) ? 0 : baseRentForYear * increaseRate;
+                    const totalDue = baseRentForYear + annualIncrease;
+                    
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${i + 1}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${dueDate.toLocaleDateString('ar-EG')}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatCurrency(baseRentForYear, customer.currency)}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatCurrency(annualIncrease, customer.currency)}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-800">${formatCurrency(totalDue, customer.currency)}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClass}">${status}</span></td>
+                    `;
+                    tableBody.appendChild(tr);
+
+                    currentRent = totalDue;
+                }
+            }
+            
+            // --- EVENT LISTENERS INITIALIZATION ---
+            function initializeEventListeners() {
+                // Main navigation
+                uiElements.showFormBtn.addEventListener('click', () => switchToFormView('add'));
+                uiElements.backToListBtn.addEventListener('click', switchToListView);
+                document.getElementById('sidebar-offerings-link').addEventListener('click', (e) => { e.preventDefault(); switchToListView(); });
+                document.getElementById('sidebar-requests-link').addEventListener('click', (e) => { e.preventDefault(); switchToRequestsSummaryView(); });
+                document.getElementById('sidebar-parameters-link').addEventListener('click', (e) => { e.preventDefault(); showView('parameters-view'); });
+                uiElements.backToRequestsListBtn.addEventListener('click', switchToRequestsSummaryView);
+                uiElements.backToRequestListForLandBtn.addEventListener('click', () => renderRequestDetailsView(currentLandIdForDetails));
+                uiElements.backToCustomerAccountsBtn.addEventListener('click', () => { renderCustomerAccounts(); showView('customer-accounts-view'); });
+                uiElements.backToDueInvoicesBtn.addEventListener('click', () => { renderDueTodayInvoices(); showView('due-today-invoices-view'); });
+
+                // Accounts navigation
+                uiElements.sidebarAccountsToggle.addEventListener('click', () => {
+                    uiElements.sidebarAccountsSubmenu.classList.toggle('hidden');
+                    document.getElementById('sidebar-accounts-arrow').classList.toggle('rotate-180');
+                });
+                uiElements.sidebarAccountsSubmenu.addEventListener('click', (e) => {
+                    const link = e.target.closest('a');
+                    if(link && link.dataset.view) {
+                        e.preventDefault();
+                        const viewId = link.dataset.view;
+                        if(viewId === 'customer-accounts-view') renderCustomerAccounts();
+                        if(viewId === 'overdue-invoices-view') renderOverdueInvoices();
+                        if(viewId === 'due-today-invoices-view') renderDueTodayInvoices();
+                        if(viewId === 'collected-revenues-view') renderCollectedRevenues();
+                        showView(viewId);
+                    }
+                });
+
+                // Modals
+                uiElements.closeHistoryBtn.addEventListener('click', () => uiElements.historyLogModal.classList.add('hidden'));
+                uiElements.closeDuplicateAlertBtn.addEventListener('click', () => uiElements.duplicateAlertModal.classList.add('hidden'));
+                uiElements.cancelParamsSaveBtn.addEventListener('click', () => uiElements.boardDecisionModal.classList.add('hidden'));
+                uiElements.closeBoardDecisionModalBtn.addEventListener('click', () => uiElements.boardDecisionModal.classList.add('hidden'));
+                uiElements.cancelSendReminderBtn.addEventListener('click', () => uiElements.sendReminderModal.classList.add('hidden'));
+                uiElements.confirmSendReminderBtn.addEventListener('click', () => {
+                    uiElements.sendReminderModal.classList.add('hidden');
+                    showToast('تم إرسال التذكير بنجاح!');
+                });
+
+                // Forms
+                uiElements.formMechanismTypeSelect.addEventListener('change', handleMechanismChange);
+                uiElements.initiativeTypeSelect.addEventListener('change', handleInitiativeTypeChange);
+                uiElements.currencyRadios.forEach(radio => radio.addEventListener('change', handleCurrencyChange));
+                uiElements.addLandBtn.addEventListener('click', () => addLandCard());
+                uiElements.parametersForm.addEventListener('submit', (e) => { e.preventDefault(); uiElements.boardDecisionModal.classList.remove('hidden'); });
+                uiElements.boardDecisionForm.addEventListener('submit', (e) => { e.preventDefault(); saveParameters(); });
+                
+                // Event Delegation for dynamic elements
+                document.body.addEventListener('click', (e) => {
+                    const target = e.target;
+                    
+                    // Table actions
+                    const tableBody = target.closest('tbody');
+                    if (tableBody) {
+                        if (tableBody.id === 'offerings-table-body') {
+                            const viewBtn = target.closest('.view-btn');
+                            const editBtn = target.closest('.edit-btn');
+                            const logBtn = target.closest('.log-btn');
+                            if (viewBtn) switchToFormView('view', viewBtn.dataset.id);
+                            if (editBtn) switchToFormView('edit', editBtn.dataset.id);
+                            if (logBtn) showHistoryModal('offering', logBtn.dataset.id);
+                        }
+                        if (tableBody.id === 'requests-summary-table-body') {
+                            const viewRequestsBtn = target.closest('.view-requests-btn');
+                            if (viewRequestsBtn) renderRequestDetailsView(parseInt(viewRequestsBtn.dataset.landId, 10));
+                        }
+                        if (tableBody.id === 'requests-for-land-table-body') {
+                            const viewSingleRequestBtn = target.closest('.view-single-request-btn');
+                            if (viewSingleRequestBtn) renderSingleRequestDetailsView(viewSingleRequestBtn.dataset.requestId);
+                        }
+                        if (tableBody.id === 'customer-accounts-table-body') {
+                            const viewDetailsBtn = target.closest('.view-customer-details-btn');
+                            if (viewDetailsBtn) renderCustomerAccountDetailView(viewDetailsBtn.dataset.customerId);
+                        }
+                        if (tableBody.id === 'overdue-invoices-table-body') {
+                            const sendReminderBtn = target.closest('.send-reminder-btn');
+                            if (sendReminderBtn) uiElements.sendReminderModal.classList.remove('hidden');
+                        }
+                    }
+                    if (target.closest('.view-invoice-details-btn')) {
+                         const viewInvoiceBtn = target.closest('.view-invoice-details-btn');
+                         if (viewInvoiceBtn) renderInvoiceDetailView(viewInvoiceBtn.dataset.invoiceId);
+                    }
+
+
+                    // Tab filter buttons
+                    const tabButton = target.closest('.tab-button, .requests-tab-button');
+                    if (tabButton) {
+                        const container = tabButton.parentElement;
+                        container.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
+                        tabButton.classList.add('active');
+                        if (container.id === 'requests-filter-tabs') renderRequestsSummaryView(tabButton.dataset.filter);
+                        if (container.id === 'parameters-tab-container') showParameterTab(tabButton.dataset.tab);
+                    }
+                });
+
+                // Event Delegation for Form Land Cards
+                uiElements.formLandsContainer.addEventListener('input', (e) => {
+                    const priceField = e.target.closest('.price-field');
+                    const basePriceInput = e.target.closest('[data-cost-type="base"]');
+
+                    if (priceField) calculateLandValues(priceField.closest('.land-card'));
+                    if(basePriceInput) setupAuctionListeners(basePriceInput.closest('.land-card'));
+                });
+                
+                uiElements.formLandsContainer.addEventListener('change', (e) => {
+                    const landSelect = e.target.closest('.land-select');
+                    const areaField = e.target.closest('.area-field');
+
+                    if (landSelect) populateLandDetails(landSelect.closest('.land-card'), landSelect.value);
+                    if (areaField) calculateLandValues(areaField.closest('.land-card'));
+                });
+
+                uiElements.formLandsContainer.addEventListener('click', (e) => {
+                    const removeBtn = e.target.closest('.remove-land-btn');
+                    if (removeBtn) removeBtn.closest('.land-card').remove();
+                });
+            }
+
+            // --- Initial Page Load ---
+            function init() {
+                initializeEventListeners();
+                renderOfferingsList();
+                renderAllParameters();
+                // Start on the customer accounts view for demonstration
+                renderCustomerAccounts();
+                showView('customer-accounts-view'); 
+            }
+
+            init();
+        });
+    </script>
+</body>
+</html>
