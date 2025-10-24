@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة تحكم المستثمر - منصة الوادي الجديد</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts (Cairo) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #f7f9fc;
+        }
+        .sidebar {
+            background-color: #ffffff;
+            border-left: 1px solid #e5e7eb;
+        }
+        .sidebar-link.active {
+            background-color: #16a34a; /* green-600 */
+            color: white;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+        .sidebar-link:not(.active) {
+            color: #374151; /* gray-700 */
+        }
+        .sidebar-link:not(.active):hover {
+            background-color: #f3f4f6; /* gray-100 */
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-weight: 600;
+            font-size: 0.75rem;
+        }
+        .status-pending { background-color: #fef9c3; color: #ca8a04; } /* yellow */
+        .status-approved { background-color: #dcfce7; color: #16a34a; } /* green */
+        .status-rejected { background-color: #fee2e2; color: #dc2626; } /* red */
+        .status-paid { background-color: #dcfce7; color: #16a34a; }
+        .status-due { background-color: #fef3c7; color: #d97706; }
+        .page-content.active { animation: fadeIn 0.5s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        /* Edit mode styles */
+        .profile-form:not(.is-editing) input,
+        .profile-form:not(.is-editing) select {
+            background-color: #f1f5f9 !important;
+            border-color: #e5e7eb !important;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        #toast-notification, .modal {
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .modal-content {
+            transition: transform 0.3s ease;
+        }
+        .management-tab.active {
+            border-color: #16a34a;
+            color: #16a34a;
+            background-color: #f0fdf4;
+        }
+        /* Messages Page Specific Styles */
+        .conversation-item.active {
+            background-color: #e2e8f0; /* slate-200 */
+        }
+        .message-bubble-me {
+             background-color: #16a34a; /* green-600 */
+             color: white;
+        }
+        .message-bubble-other {
+            background-color: #e2e8f0; /* slate-200 */
+            color: #1e293b; /* slate-800 */
+        }
+        .notification-item:not(.read) {
+            background-color: #f0fdf4; /* green-50 */
+        }
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #invoice-modal-content, #invoice-modal-content * {
+                visibility: visible;
+            }
+            #invoice-modal-content {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
+            #print-invoice-btn {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-50">
+
+    <!-- Toast & Modals -->
+    <div id="toast-notification" class="fixed top-5 left-1/2 -translate-x-1/2 w-full max-w-md z-50 opacity-0 -translate-y-20">
+        <div id="toast-content" class="flex items-center gap-x-3 bg-green-600 text-white text-sm font-semibold p-4 rounded-lg shadow-lg">
+            <i data-lucide="check-circle" class="w-5 h-5"></i>
+            <span id="toast-message"></span>
+        </div>
+    </div>
+    <div id="modal-container"></div>
+    <input type="file" id="file-uploader" class="hidden" />
+
+    <div class="flex h-screen bg-f7f9fc">
+        <!-- Sidebar -->
+        <aside class="w-72 bg-white shadow-lg flex-shrink-0 flex flex-col">
+            <div class="flex items-center h-20 border-b flex-shrink-0 px-4">
+                 <a href="#" class="flex items-center justify-between w-full">
+                    <div class="text-right flex-grow">
+                        <h1 class="font-extrabold text-sm text-green-800 leading-tight">المنصة الرقمية لصندوق الاستثمار</h1>
+                    </div>
+                     <div class="flex items-center gap-x-2 flex-shrink-0">
+                         <img src="photo/logo gov.gif" alt="logo gov" class="h-9 w-9 object-contain rounded-md" onerror="this.onerror=null;this.src='https://placehold.co/40x40/cccccc/ffffff?text=G';">
+                         <img src="photo/logo box.png" alt="logo box" class="h-9 w-9 object-contain rounded-md" onerror="this.onerror=null;this.src='https://placehold.co/40x40/166534/ffffff?text=B';">
+                     </div>
+                </a>
+            </div>
+            <nav class="mt-6 flex-grow p-4">
+                <p class="text-xs font-semibold text-gray-400 uppercase px-4 mb-2">القائمة الرئيسية</p>
+                <a href="#dashboard" class="sidebar-link active flex items-center gap-x-3 py-2.5 px-4 rounded-lg" data-page="dashboard"><i data-lucide="layout-dashboard" class="w-5 h-5"></i><span class="font-semibold">لوحة التحكم</span></a>
+                <a href="#my-lands" class="sidebar-link flex items-center gap-x-3 py-2.5 px-4 rounded-lg mt-1" data-page="my-lands"><i data-lucide="map-pins" class="w-5 h-5"></i><span class="font-semibold">أراضي المخصصة</span></a>
+                <a href="#notifications" class="sidebar-link flex items-center gap-x-3 py-2.5 px-4 rounded-lg mt-1" data-page="notifications"><i data-lucide="bell" class="w-5 h-5"></i><span class="font-semibold">الإشعارات</span></a>
+                
+                <p class="text-xs font-semibold text-gray-400 uppercase px-4 mt-6 mb-2">الإدارة العامة</p>
+                <a href="#applications" class="sidebar-link flex items-center gap-x-3 py-2.5 px-4 rounded-lg mt-1" data-page="applications"><i data-lucide="file-text" class="w-5 h-5"></i><span class="font-semibold">الطلبات العامة</span></a>
+                <a href="#financials" class="sidebar-link flex items-center gap-x-3 py-2.5 px-4 rounded-lg mt-1" data-page="financials"><i data-lucide="landmark" class="w-5 h-5"></i><span class="font-semibold">المركز المالي</span></a>
+                <a href="#messages" class="sidebar-link flex items-center gap-x-3 py-2.5 px-4 rounded-lg mt-1" data-page="messages"><i data-lucide="message-square-text" class="w-5 h-5"></i><span class="font-semibold">الرسائل</span></a>
+                
+                <p class="text-xs font-semibold text-gray-400 uppercase px-4 mt-6 mb-2">إدارة الحساب</p>
+                <a href="#profile" class="sidebar-link flex items-center gap-x-3 py-2.5 px-4 rounded-lg mt-1" data-page="profile"><i data-lucide="user-cog" class="w-5 h-5"></i><span class="font-semibold">الملف الشخصي</span></a>
+                <a href="#documents" class="sidebar-link flex items-center gap-x-3 py-2.5 px-4 rounded-lg mt-1" data-page="documents"><i data-lucide="folder-archive" class="w-5 h-5"></i><span class="font-semibold">المستندات العامة</span></a>
+            </nav>
+        </aside>
+
+        <!-- Main content -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+             <!-- Header -->
+            <header class="flex justify-between items-center p-5 bg-white border-b">
+                <div class="flex items-center gap-x-3">
+                    <div>
+                        <h4 id="user-name-display" class="font-bold text-gray-800">شركة الوادي للتنمية</h4>
+                        <p id="user-type-display" class="text-xs text-gray-500">مستثمر شركة</p>
+                    </div>
+                </div>
+                 <div class="flex items-center gap-x-6">
+                     <a href="#" class="font-semibold text-gray-600 hover:text-green-600 transition-colors">عودة للبوابة</a>
+                     <div class="relative">
+                         <button id="notification-btn" class="relative text-gray-500 hover:text-gray-700">
+                             <i data-lucide="bell"></i>
+                             <span id="notification-badge" class="hidden absolute -top-1 -right-1 h-4 w-4 text-xs text-white flex items-center justify-center bg-red-500 rounded-full border-2 border-white"></span>
+                         </button>
+                         <div id="notification-dropdown" class="hidden absolute left-0 mt-2 w-80 bg-white rounded-lg shadow-xl border z-20">
+                             <div class="p-3 font-bold text-gray-700 border-b">الإشعارات</div>
+                             <ul id="notification-list-dropdown" class="py-2 max-h-80 overflow-y-auto">
+                                  <!-- Dropdown notifications will be rendered here -->
+                             </ul>
+                             <div class="p-2 border-t text-center">
+                                 <a href="#notifications" class="text-sm font-bold text-green-600 hover:underline">عرض كل الإشعارات</a>
+                             </div>
+                         </div>
+                     </div>
+                </div>
+            </header>
+
+            <!-- Content Body -->
+            <main class="flex-1 overflow-x-hidden overflow-y-auto bg-slate-100 p-6" id="main-content"></main>
+        </div>
+    </div>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        // --- DATA SIMULATION ---
+        const AppData = {
+            profile: {
+                companyName: "شركة الوادي للتنمية",
+                legalEntity: "شركة مساهمة مصرية",
+                nationality: "مصرية",
+                activity: "استصلاح زراعي وتنمية",
+                commercialRecord: "12345",
+                recordIssueDate: "2020-01-15",
+                recordExpiryDate: "2025-01-14",
+                taxCard: "987-654-321",
+                taxCardIssueDate: "2020-02-01",
+                taxCardExpiryDate: "2025-01-31",
+                issuingAuthority: "مكتب استثمار القاهرة",
+                companyPhone: "0221234567",
+                chairman: {
+                    name: "أحمد عبد العزيز",
+                    phone: "01001234567",
+                    email: "ahmed.aziz@email.com",
+                    address: "123 شارع التحرير، الدقي، الجيزة"
+                },
+                partners: [
+                    { name: "محمد خالد", nationality: "مصري", phone: "01112345678", email: "mohamed.khalid@email.com", address: "456 شارع مصدق، الدقي، الجيزة" },
+                    { name: "شركة استثمار الخليج", nationality: "سعودية", phone: "+966501234567", email: "contact@gulf-invest.sa", address: "برج المملكة، الرياض، السعودية" }
+                ]
+            },
+            lands: [
+                { id: 'land-1', name: 'قطعة أرض بمنطقة باريس', location: 'باريس، الوادي الجديد', area: '50 فدان', status: 'نشطة', applications: [ { id: '#852', name: 'طلب تخصيص أولي', type: 'طرح مباشر', date: '2025-06-05', status: 'مقبول' }, { id: '#910', name: 'طلب ترخيص بئر', type: 'خدمات', date: '2025-07-01', status: 'قيد المراجعة' } ], financials: [ {id: 'fin-1', statement: 'قسط أرض #852', dueDate: '2025-07-25', total: 150000, status: 'مستحق', paymentDate: null }, { id: 'fin-2', statement: 'دفعة مقدمة - #852', dueDate: '2025-06-15', total: 300000, status: 'مدفوع', paymentDate: '2025-06-15' } ], documents: [], adminRequests: [ { id: 'req-1', for: 'طلب #910', type: 'document', title: 'مطلوب دراسة جدوى مفصلة للبئر', status: 'pending', actionText: 'رفع المستند' } ] },
+                { id: 'land-2', name: 'أرض مزاد بشرق العوينات', location: 'شرق العوينات', area: '100 فدان', status: 'نشطة', applications: [ { id: '#1024', name: 'مزاد أراضي استصلاح', type: 'مزاد', date: '2025-06-10', status: 'مقبول' } ], financials: [ { id: 'fin-3', statement: 'قسط أرض #1024', dueDate: '2025-08-25', total: 250000, status: 'مستحق', paymentDate: null }, { id: 'fin-4', statement: 'دفعة مقدمة - #1024', dueDate: '2025-03-15', total: 500000, status: 'مدفوع', paymentDate: '2025-03-15' } ], documents: [], adminRequests: [] }
+            ],
+            generalApplications: [ { id: '#G-01', name: 'استفسار عن فرص استثمارية', type: 'استفسار', date: '2025-07-20', status: 'تم الرد' }, { id: '#G-02', name: 'طلب دعم فني', type: 'دعم فني', date: '2025-07-25', status: 'قيد المتابعة' } ],
+            generalDocuments: [ 
+                { name: 'عقد تأسيس الشركة', uploadDate: '2020-01-10', status: 'تم التحقق' }, 
+                { name: 'سابقة الأعمال', uploadDate: '-', status: 'مطلوب' },
+                { name: 'المستندات الورقية (مجمع)', uploadDate: '-', status: 'مطلوب' },
+            ],
+            messages: [ { id: 1, participant: 'الدعم الفني', avatar: 'https://placehold.co/100x100/3b82f6/FFFFFF?text=TS', lastMessage: 'بالتأكيد، سنقوم بالتحقق.', timestamp: '10:30 ص', unread: 1, history: [ { sender: 'me', text: 'مرحبًا، أواجه مشكلة.', time: '10:28 ص' }, { sender: 'other', text: 'بالتأكيد، سنقوم بالتحقق.', time: '10:30 ص' } ] }, { id: 2, participant: 'الإدارة المالية', avatar: 'https://placehold.co/100x100/16a34a/FFFFFF?text=FA', lastMessage: 'تم استلام تأكيد الدفع.', timestamp: 'أمس', unread: 0, history: [ { sender: 'me', text: 'لقد قمت بسداد دفعة.', time: '3:00 م' }, { sender: 'other', text: 'تم استلام تأكيد الدفع.', time: '3:05 م' } ] } ],
+            notifications: [
+                { id: 1, type: 'payment_reminder', message: 'تذكير: دفعة قسط أرض باريس مستحقة بتاريخ 25 يوليو 2025.', date: '2025-07-20', read: false },
+                { id: 2, type: 'request_update', message: 'تم قبول طلب تخصيص أرض باريس رقم #852.', date: '2025-06-20', read: false },
+                { id: 3, type: 'admin_request', message: 'طلب إداري جديد لقطعة أرض باريس.', date: '2025-07-15', read: true },
+                { id: 4, type: 'general', message: 'تم تحديث شروط الخدمة. يرجى الإطلاع عليها.', date: '2025-06-01', read: true }
+            ],
+            financialNotices: [
+                { id: 1, landName: 'قطعة أرض بمنطقة باريس', date: '2025-08-01', notice: 'إنذار أول بتأخر سداد قسط #852. يرجى السداد لتجنب غرامات إضافية.', read: false },
+                { id: 2, landName: 'قطعة أرض بمنطقة باريس', date: '2025-07-15', notice: 'تنبيه بقرب استحقاق قسط #852.', read: true }
+            ],
+            activeConversationId: null,
+        };
+
+        // --- CONSTANTS & CONFIG ---
+        const INTEREST_RATE = 0.15; // 15% annual interest rate
+        const CURRENT_DATE = new Date('2025-08-02'); // Simulated current date for fine calculation
+
+        // --- TEMPLATES ---
+        const PageTemplates = {
+            dashboard: () => {
+                const upcomingPayments = AppData.lands.flatMap(land => land.financials.map(f => ({...f, landName: land.name}))).filter(f => f.status === 'مستحق').sort((a,b) => new Date(a.dueDate) - new Date(b.dueDate));
+                const unreadNotifications = AppData.notifications.filter(n => !n.read);
+
+                return `
+                <div class="page-content active">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-2">أهلاً بعودتك، ${AppData.profile.companyName}</h2>
+                    <p class="text-gray-500 mb-8">إليك ملخص سريع لحسابك اليوم.</p>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Main Column -->
+                        <div class="lg:col-span-2 space-y-6">
+                            <!-- Quick Stats -->
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div class="bg-white p-5 rounded-xl shadow-sm flex items-center gap-x-4">
+                                    <div class="bg-green-100 p-3 rounded-lg"><i data-lucide="map-pins" class="w-6 h-6 text-green-600"></i></div>
+                                    <div><p class="text-sm text-gray-500">الأراضي المخصصة</p><p class="text-xl font-bold text-gray-800">${AppData.lands.length}</p></div>
+                                </div>
+                                <div class="bg-white p-5 rounded-xl shadow-sm flex items-center gap-x-4">
+                                    <div class="bg-yellow-100 p-3 rounded-lg"><i data-lucide="hourglass" class="w-6 h-6 text-yellow-600"></i></div>
+                                    <div><p class="text-sm text-gray-500">طلبات معلقة</p><p class="text-xl font-bold text-gray-800">${AppData.lands.reduce((acc, land) => acc + land.applications.filter(a => a.status !== 'مقبول').length, 0)}</p></div>
+                                </div>
+                                <div class="bg-white p-5 rounded-xl shadow-sm flex items-center gap-x-4">
+                                    <div class="bg-red-100 p-3 rounded-lg"><i data-lucide="alert-circle" class="w-6 h-6 text-red-600"></i></div>
+                                    <div><p class="text-sm text-gray-500">إشعارات جديدة</p><p class="text-xl font-bold text-gray-800">${unreadNotifications.length}</p></div>
+                                </div>
+                            </div>
+                            <!-- Upcoming Payments -->
+                            <div class="bg-white p-6 rounded-xl shadow-sm">
+                                <h3 class="text-xl font-bold text-gray-800 mb-4">الدفعات القادمة</h3>
+                                ${upcomingPayments.length > 0 ? `
+                                <div class="space-y-4">
+                                ${upcomingPayments.slice(0, 3).map(p => {
+                                    const dueDate = new Date(p.dueDate);
+                                    const daysLate = Math.max(0, Math.floor((CURRENT_DATE - dueDate) / (1000 * 60 * 60 * 24)));
+                                    return `
+                                    <div class="flex justify-between items-center p-3 rounded-lg ${daysLate > 0 ? 'bg-red-50' : 'bg-slate-50'}">
+                                        <div>
+                                            <p class="font-bold">${p.statement}</p>
+                                            <p class="text-sm text-gray-500">${p.landName}</p>
+                                        </div>
+                                        <div class="text-left">
+                                            <p class="font-bold text-lg ${daysLate > 0 ? 'text-red-600' : 'text-gray-800'}">${p.total.toLocaleString()} ج.م</p>
+                                            <p class="text-xs text-gray-500">تستحق في: ${p.dueDate}</p>
+                                        </div>
+                                    </div>
+                                    `}).join('')}
+                                </div>
+                                <a href="#financials" class="block text-center mt-4 text-sm font-bold text-green-600 hover:underline">عرض كل المعاملات المالية</a>
+                                ` : `<p class="text-center text-gray-500 py-4">لا توجد دفعات قادمة.</p>`}
+                            </div>
+                        </div>
+                        <!-- Side Column -->
+                        <div class="space-y-6">
+                             <div class="bg-white p-6 rounded-xl shadow-sm">
+                                <h3 class="text-xl font-bold text-gray-800 mb-4">الإشعارات الأخيرة</h3>
+                                <div class="space-y-3">
+                                ${unreadNotifications.length > 0 ? unreadNotifications.slice(0, 3).map(n => `
+                                    <div class="flex items-start gap-x-3">
+                                        <div class="mt-1 p-1.5 bg-blue-100 rounded-full"><i data-lucide="bell" class="w-4 h-4 text-blue-600"></i></div>
+                                        <div>
+                                            <p class="text-sm font-semibold text-gray-700">${n.message}</p>
+                                            <p class="text-xs text-gray-400">${new Date(n.date).toLocaleDateString('ar-EG')}</p>
+                                        </div>
+                                    </div>
+                                `).join('') : `<p class="text-center text-gray-500 py-4">لا توجد إشعارات جديدة.</p>`}
+                                </div>
+                                <a href="#notifications" class="block text-center mt-4 text-sm font-bold text-green-600 hover:underline">عرض كل الإشعارات</a>
+                            </div>
+                            <div class="bg-white p-6 rounded-xl shadow-sm">
+                                <h3 class="text-xl font-bold text-gray-800 mb-4">وصول سريع</h3>
+                                <div class="space-y-2">
+                                    <a href="#my-lands" class="block w-full text-right p-3 bg-slate-100 hover:bg-slate-200 rounded-lg font-semibold text-slate-700">عرض أراضي المخصصة</a>
+                                    <a href="#messages" class="block w-full text-right p-3 bg-slate-100 hover:bg-slate-200 rounded-lg font-semibold text-slate-700">إرسال رسالة للدعم</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            },
+            notifications: () => {
+                const notifications = AppData.notifications.sort((a,b) => new Date(b.date) - new Date(a.date));
+                const iconMap = { payment_reminder: 'wallet', request_update: 'check-circle', admin_request: 'alert-triangle', general: 'info' };
+                const colorMap = { payment_reminder: 'text-yellow-600 bg-yellow-100', request_update: 'text-green-600 bg-green-100', admin_request: 'text-red-600 bg-red-100', general: 'text-blue-600 bg-blue-100' };
+
+                return `
+                <div class="page-content active">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-6">الإشعارات</h2>
+                    <div class="bg-white p-6 rounded-lg shadow-sm">
+                        <div class="space-y-4">
+                        ${notifications.map(n => `
+                            <div class="notification-item flex items-start gap-x-4 p-4 border-b ${!n.read ? 'read' : ''}">
+                                <div class="p-2 rounded-full ${colorMap[n.type]}"><i data-lucide="${iconMap[n.type]}" class="w-5 h-5"></i></div>
+                                <div class="flex-grow">
+                                    <p class="font-semibold text-gray-800">${n.message}</p>
+                                    <p class="text-sm text-gray-500">${new Date(n.date).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                                </div>
+                                ${!n.read ? `<button data-id="${n.id}" class="mark-as-read-btn text-xs font-bold text-gray-500 hover:text-green-600">تمييز كمقروء</button>` : ''}
+                            </div>
+                        `).join('')}
+                        </div>
+                    </div>
+                </div>`;
+            },
+            financials: () => {
+                return `
+                <div class="page-content active">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-6">المركز المالي العام</h2>
+                    <div class="bg-white p-6 rounded-lg shadow-sm">
+                        <div class="flex border-b mb-6">
+                            <button data-tab="due" class="management-tab active font-semibold py-3 px-6 border-b-2 border-transparent">المستحق</button>
+                            <button data-tab="arrears" class="management-tab font-semibold py-3 px-6 border-b-2 border-transparent">المتأخرات</button>
+                            <button data-tab="collected" class="management-tab font-semibold py-3 px-6 border-b-2 border-transparent">المحصل</button>
+                            <button data-tab="next" class="management-tab font-semibold py-3 px-6 border-b-2 border-transparent">الدفعة القادمة</button>
+                            <button data-tab="notices" class="management-tab font-semibold py-3 px-6 border-b-2 border-transparent">الإنذارات</button>
+                        </div>
+                        <div id="financials-content">
+                            <!-- Financial content will be injected here -->
+                        </div>
+                    </div>
+                </div>`;
+            },
+            'my-lands': () => `
+                <div class="page-content active">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-6">أراضي المخصصة</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        ${AppData.lands.map(land => `
+                            <div class="bg-white p-6 rounded-lg shadow-sm hover:shadow-lg transition-shadow">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <h3 class="text-lg font-bold text-green-700">${land.name}</h3>
+                                        <p class="text-sm text-gray-500 flex items-center gap-x-2 mt-1"><i data-lucide="map-pin" class="w-4 h-4"></i>${land.location}</p>
+                                    </div>
+                                    <span class="status-badge status-approved">${land.status}</span>
+                                </div>
+                                <div class="flex justify-between items-end mt-6">
+                                    <div>
+                                        <p class="text-xs text-gray-500">المساحة</p>
+                                        <p class="font-bold text-gray-800">${land.area}</p>
+                                    </div>
+                                    <a href="#land-management?id=${land.id}" class="manage-land-btn bg-green-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-green-700">إدارة الأرض</a>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>`,
+            'land-management': (params) => {
+                const land = AppData.lands.find(l => l.id === params.id);
+                if (!land) return `<p>لم يتم العثور على الأرض المطلوبة.</p>`;
+                return `
+                <div class="page-content active">
+                    <div class="flex items-center gap-x-4 mb-6">
+                        <a href="#my-lands" class="text-gray-500 hover:text-green-600"><i data-lucide="arrow-right-circle" class="w-7 h-7"></i></a>
+                        <div><h2 class="text-2xl font-bold text-gray-800">${land.name}</h2><p class="text-sm text-gray-500">${land.location}</p></div>
+                    </div>
+                    <div class="flex border-b mb-6">
+                        <button data-tab="applications" class="management-tab active font-semibold py-3 px-6 border-b-2 border-transparent">الطلبات</button>
+                        <button data-tab="financials" class="management-tab font-semibold py-3 px-6 border-b-2 border-transparent">المعاملات المالية</button>
+                        <button data-tab="documents" class="management-tab font-semibold py-3 px-6 border-b-2 border-transparent">المستندات</button>
+                        <button data-tab="requests" class="management-tab font-semibold py-3 px-6 border-b-2 border-transparent relative">الطلبات الإدارية ${land.adminRequests.filter(r => r.status === 'pending').length > 0 ? `<span class="absolute top-2 right-2 h-2 w-2 bg-red-500 rounded-full"></span>` : ''}</button>
+                    </div>
+                    <div id="land-management-content"></div>
+                </div>`;
+            },
+            applications: () => `
+                <div class="page-content active">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-6">الطلبات العامة</h2>
+                    <div class="bg-white p-6 rounded-lg shadow-sm">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm text-right">
+                                <thead class="text-gray-500 bg-gray-50"><tr><th class="p-3">#</th><th class="p-3">اسم الطلب</th><th class="p-3">النوع</th><th class="p-3">تاريخ التقديم</th><th class="p-3 text-center">الحالة</th></tr></thead>
+                                <tbody>
+                                    ${AppData.generalApplications.map(app => `
+                                        <tr class="border-b"><td class="p-3 font-semibold">${app.id}</td><td class="p-3 font-semibold">${app.name}</td><td class="p-3">${app.type}</td><td class="p-3">${app.date}</td><td class="p-3 text-center"><span class="status-badge ${app.status === 'تم الرد' ? 'status-approved' : 'status-pending'}">${app.status}</span></td></tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>`,
+            messages: () => `
+                 <div class="page-content active h-full">
+                    <div class="bg-white rounded-lg shadow-sm h-full flex">
+                        <div id="conversations-panel" class="w-1/3 border-l h-full flex flex-col">
+                            <div class="p-4 border-b flex justify-between items-center">
+                                <h3 class="text-lg font-bold text-gray-800">الرسائل</h3>
+                                <button id="new-message-btn" class="bg-green-600 text-white p-2 rounded-lg hover:bg-green-700 flex items-center gap-x-1 text-sm">
+                                    <i data-lucide="plus" class="w-4 h-4"></i>
+                                    <span>رسالة جديدة</span>
+                                </button>
+                            </div>
+                            <div id="conversation-list-container" class="flex-grow overflow-y-auto"></div>
+                        </div>
+                        <div id="message-view-panel" class="w-2/3 h-full flex flex-col">
+                           <div class="h-full flex flex-col items-center justify-center text-center text-gray-400"><i data-lucide="messages-square" class="w-16 h-16 mb-4"></i><h4 class="text-lg font-semibold">حدد محادثة لعرضها</h4><p class="text-sm">أو ابدأ محادثة جديدة.</p></div>
+                        </div>
+                    </div>
+                 </div>`,
+            profile: () => {
+                const p = AppData.profile;
+                return `
+                <div class="page-content active">
+                    <div class="bg-white p-6 rounded-lg shadow-sm">
+                        <div class="flex justify-between items-center mb-6 border-b pb-4">
+                            <div><h3 class="text-xl font-bold text-gray-800">الملف الشخصي للشركة</h3><p class="text-sm text-gray-500">إدارة معلومات الشركة وبياناتها الرسمية.</p></div>
+                            <button id="edit-profile-btn" class="bg-green-600 text-white px-5 py-2 rounded-lg font-bold hover:bg-green-700 flex items-center gap-x-2"><i data-lucide="edit-3" class="w-4 h-4"></i><span id="edit-btn-text">تعديل البيانات</span></button>
+                        </div>
+                        <form id="company-profile-form" class="profile-form space-y-8">
+                            
+                            <!-- Section: Official & Commercial Data -->
+                            <div>
+                                <h4 class="font-bold text-lg text-gray-800 mb-4 border-b pb-2">البيانات الرسمية والتجارية</h4>
+                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-4">
+                                    <div><label class="font-semibold text-sm text-gray-700">اسم الشركة</label><input type="text" name="companyName" value="${p.companyName}" class="w-full mt-1 p-2 border rounded-lg"></div>
+                                    <div><label class="font-semibold text-sm text-gray-700">نشاط الشركة بالسجل التجاري</label><input type="text" name="activity" value="${p.activity}" class="w-full mt-1 p-2 border rounded-lg"></div>
+                                    <div><label class="font-semibold text-sm text-gray-700">جنسية الشركة</label><input type="text" name="nationality" value="${p.nationality}" class="w-full mt-1 p-2 border rounded-lg"></div>
+                                    <div><label class="font-semibold text-sm text-gray-700">رقم السجل التجاري</label><input type="text" name="commercialRecord" value="${p.commercialRecord}" class="w-full mt-1 p-2 border rounded-lg"></div>
+                                    <div><label class="font-semibold text-sm text-gray-700">تاريخ إصدار السجل</label><input type="date" name="recordIssueDate" value="${p.recordIssueDate}" class="w-full mt-1 p-2 border rounded-lg"></div>
+                                    <div><label class="font-semibold text-sm text-gray-700">تاريخ صلاحية السجل</label><input type="date" name="recordExpiryDate" value="${p.recordExpiryDate}" class="w-full mt-1 p-2 border rounded-lg"></div>
+                                    <div><label class="font-semibold text-sm text-gray-700">رقم البطاقة الضريبية</label><input type="text" name="taxCard" value="${p.taxCard}" class="w-full mt-1 p-2 border rounded-lg"></div>
+                                    <div><label class="font-semibold text-sm text-gray-700">تاريخ إصدار البطاقة</label><input type="date" name="taxCardIssueDate" value="${p.taxCardIssueDate}" class="w-full mt-1 p-2 border rounded-lg"></div>
+                                    <div><label class="font-semibold text-sm text-gray-700">تاريخ انتهاء البطاقة</label><input type="date" name="taxCardExpiryDate" value="${p.taxCardExpiryDate}" class="w-full mt-1 p-2 border rounded-lg"></div>
+                                    <div class="lg:col-span-3"><label class="font-semibold text-sm text-gray-700">جهة الإصدار (السجل أو البطاقة)</label><input type="text" name="issuingAuthority" value="${p.issuingAuthority}" class="w-full mt-1 p-2 border rounded-lg"></div>
+                                </div>
+                            </div>
+
+                            <!-- Section: Chairman Data -->
+                            <div>
+                                <h4 class="font-bold text-lg text-gray-800 mb-4 border-b pb-2">بيانات رئيس مجلس الإدارة</h4>
+                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-4">
+                                    <div><label class="font-semibold text-sm text-gray-700">الاسم</label><input type="text" name="chairmanName" value="${p.chairman.name}" class="w-full mt-1 p-2 border rounded-lg"></div>
+                                    <div><label class="font-semibold text-sm text-gray-700">رقم الهاتف الشخصي</label><input type="text" name="chairmanPhone" value="${p.chairman.phone}" class="w-full mt-1 p-2 border rounded-lg"></div>
+                                    <div><label class="font-semibold text-sm text-gray-700">البريد الإلكتروني</label><input type="email" name="chairmanEmail" value="${p.chairman.email}" class="w-full mt-1 p-2 border rounded-lg"></div>
+                                    <div class="lg:col-span-3"><label class="font-semibold text-sm text-gray-700">العنوان</label><input type="text" name="chairmanAddress" value="${p.chairman.address}" class="w-full mt-1 p-2 border rounded-lg"></div>
+                                </div>
+                            </div>
+                            
+                            <!-- Section: Company Contact -->
+                            <div>
+                                <h4 class="font-bold text-lg text-gray-800 mb-4 border-b pb-2">بيانات التواصل مع الشركة</h4>
+                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-4">
+                                     <div><label class="font-semibold text-sm text-gray-700">رقم هاتف الشركة</label><input type="text" name="companyPhone" value="${p.companyPhone}" class="w-full mt-1 p-2 border rounded-lg"></div>
+                                </div>
+                            </div>
+
+                            <!-- Section: Partners -->
+                            <div>
+                                <h4 class="font-bold text-lg text-gray-800 mb-4 border-b pb-2">الشركاء (حسب السجل التجاري)</h4>
+                                <div class="space-y-6 mt-4">
+                                    ${p.partners.map((partner, index) => `
+                                    <div class="p-4 border rounded-lg bg-slate-50">
+                                        <p class="font-bold text-md text-gray-700 mb-4">الشريك ${index + 1}</p>
+                                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                            <div><label class="font-semibold text-sm text-gray-600">اسم الشريك</label><input type="text" name="partnerName${index}" value="${partner.name}" class="w-full mt-1 p-2 border rounded-lg"></div>
+                                            <div><label class="font-semibold text-sm text-gray-600">جنسية الشريك</label><input type="text" name="partnerNationality${index}" value="${partner.nationality}" class="w-full mt-1 p-2 border rounded-lg"></div>
+                                            <div><label class="font-semibold text-sm text-gray-600">رقم الهاتف</label><input type="text" name="partnerPhone${index}" value="${partner.phone}" class="w-full mt-1 p-2 border rounded-lg"></div>
+                                            <div><label class="font-semibold text-sm text-gray-600">البريد الإلكتروني</label><input type="email" name="partnerEmail${index}" value="${partner.email}" class="w-full mt-1 p-2 border rounded-lg"></div>
+                                            <div class="lg:col-span-2"><label class="font-semibold text-sm text-gray-600">العنوان</label><input type="text" name="partnerAddress${index}" value="${partner.address}" class="w-full mt-1 p-2 border rounded-lg"></div>
+                                        </div>
+                                    </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+
+                         </form>
+                    </div>
+                </div>`;
+            },
+            documents: () => `
+                <div class="page-content active">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-6">المستندات العامة للشركة</h2>
+                    <div class="bg-white p-6 rounded-lg shadow-sm">
+                         <div class="flex justify-between items-center mb-6">
+                             <h3 class="text-xl font-bold text-gray-800">قائمة المستندات</h3>
+                             <button id="upload-doc-btn" class="bg-green-600 text-white px-5 py-2 rounded-lg font-bold hover:bg-green-700 flex items-center gap-x-2"><i data-lucide="upload-cloud"></i> رفع مستند جديد</button>
+                         </div>
+                         <div class="overflow-x-auto">
+                             <table class="w-full text-sm text-right">
+                                 <thead class="text-gray-500 bg-gray-50"><tr><th class="p-3">اسم المستند</th><th class="p-3">تاريخ الرفع</th><th class="p-3 text-center">الحالة</th><th class="p-3 text-center">الإجراءات</th></tr></thead>
+                                 <tbody>
+                                     ${AppData.generalDocuments.map(doc => `
+                                         <tr class="border-b"><td class="p-3 font-semibold">${doc.name}</td><td class="p-3">${doc.uploadDate}</td><td class="p-3 text-center"><span class="status-badge ${doc.status === 'تم التحقق' ? 'status-approved' : (doc.status === 'مطلوب' ? 'status-rejected' : 'status-pending')}">${doc.status}</span></td><td class="p-3 text-center">${doc.status === 'مطلوب' ? '<button class="upload-now-btn text-green-600 hover:underline font-bold">رفع الآن</button>' : '<button class="view-doc-btn text-gray-400 hover:text-green-600 p-1"><i data-lucide="eye"></i></button>'}</td></tr>
+                                     `).join('')}
+                                 </tbody>
+                             </table>
+                         </div>
+                     </div>
+                </div>`,
+        };
+        
+        // --- DOM & STATE ---
+        const DOM = { mainContent: document.getElementById('main-content'), sidebarLinks: document.querySelectorAll('.sidebar-link'), modalContainer: document.getElementById('modal-container'), fileUploader: document.getElementById('file-uploader'), notificationBtn: document.getElementById('notification-btn'), notificationDropdown: document.getElementById('notification-dropdown'), notificationBadge: document.getElementById('notification-badge'), notificationListDropdown: document.getElementById('notification-list-dropdown'), };
+
+        // --- FUNCTIONS ---
+        function showToast(message) {
+            const toast = document.getElementById('toast-notification');
+            const toastMessage = document.getElementById('toast-message');
+            if(!toast || !toastMessage) return;
+            toastMessage.textContent = message;
+            toast.classList.remove('opacity-0', '-translate-y-20');
+            setTimeout(() => toast.classList.add('opacity-0', '-translate-y-20'), 4000);
+        }
+
+        function openModal(content) {
+            DOM.modalContainer.innerHTML = content;
+            lucide.createIcons();
+            setTimeout(() => {
+                const modal = DOM.modalContainer.querySelector('.modal');
+                const modalContent = DOM.modalContainer.querySelector('.modal-content');
+                if (modal) modal.classList.remove('opacity-0');
+                if (modalContent) modalContent.classList.remove('scale-95');
+            }, 10);
+        }
+
+        function closeModal() {
+            const modal = DOM.modalContainer.querySelector('.modal');
+            const modalContent = DOM.modalContainer.querySelector('.modal-content');
+            if (modal) modal.classList.add('opacity-0');
+            if (modalContent) modalContent.classList.add('scale-95');
+            setTimeout(() => { DOM.modalContainer.innerHTML = ''; }, 300);
+        }
+
+        function renderPage(pageId, params = {}) {
+            const template = PageTemplates[pageId] || PageTemplates.dashboard;
+            if (typeof template === 'function') {
+                DOM.mainContent.innerHTML = template(params);
+            } else {
+                DOM.mainContent.innerHTML = template;
+            }
+            lucide.createIcons();
+            bindPageEventListeners(pageId, params);
+        }
+        
+        function handleNavigation() {
+            const hash = window.location.hash.substring(1);
+            const [pageId, query] = hash.split('?');
+            const params = new URLSearchParams(query);
+            
+            renderPage(pageId || 'dashboard', Object.fromEntries(params));
+
+            DOM.sidebarLinks.forEach(l => {
+                l.classList.toggle('active', l.dataset.page === pageId);
+            });
+        }
+        
+        function updateNotifications() {
+            const unread = AppData.notifications.filter(n => !n.read);
+            DOM.notificationBadge.textContent = unread.length;
+            DOM.notificationBadge.classList.toggle('hidden', unread.length === 0);
+            
+            if (DOM.notificationListDropdown) {
+                if (unread.length === 0) {
+                    DOM.notificationListDropdown.innerHTML = `<li class="text-center text-gray-500 text-sm p-4">لا توجد إشعارات جديدة.</li>`;
+                } else {
+                    DOM.notificationListDropdown.innerHTML = unread.slice(0, 5).map(n => `
+                        <li class="p-3 border-b border-gray-100 hover:bg-slate-50 cursor-pointer">
+                            <p class="font-semibold text-gray-800 text-sm">${n.message}</p>
+                            <p class="text-xs text-gray-400">${new Date(n.date).toLocaleDateString('ar-EG')}</p>
+                        </li>
+                    `).join('');
+                }
+            }
+        }
+
+        function addNotification(message, type = 'info') {
+            const newNotif = {
+                id: AppData.notifications.length + 1,
+                type: type,
+                message: message,
+                date: new Date().toISOString().split('T')[0], // YYYY-MM-DD
+                read: false
+            };
+            AppData.notifications.unshift(newNotif);
+            updateNotifications();
+        }
+
+        function bindPageEventListeners(pageId, params) {
+            if (pageId === 'notifications') {
+                DOM.mainContent.addEventListener('click', e => {
+                    const button = e.target.closest('.mark-as-read-btn');
+                    if (button) {
+                        const notifId = parseInt(button.dataset.id);
+                        const notification = AppData.notifications.find(n => n.id === notifId);
+                        if (notification) {
+                            notification.read = true;
+                            renderPage('notifications'); // Re-render the page
+                            updateNotifications(); // Update the header dropdown
+                        }
+                    }
+                });
+            } else if (pageId === 'messages') {
+                setupMessagesPage();
+            } else if (pageId === 'profile') {
+                setupProfilePage();
+            } else if (pageId === 'land-management') {
+                setupLandManagementPage(params);
+            } else if (pageId === 'financials') {
+                setupFinancialsPage();
+            }
+        }
+
+        function setupFinancialsPage() {
+            const tabs = document.querySelectorAll('.management-tab');
+            const contentContainer = document.getElementById('financials-content');
+            if (!tabs.length || !contentContainer) return;
+
+            const allFinancials = AppData.lands.flatMap(land => land.financials.map(f => ({...f, landName: land.name})));
+
+            const FinancialTabs = {
+                due: () => {
+                    const duePayments = allFinancials.filter(f => f.status === 'مستحق' && new Date(f.dueDate) >= CURRENT_DATE).sort((a,b) => new Date(a.dueDate) - new Date(b.dueDate));
+                    return `
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-right">
+                            <thead class="text-gray-500 bg-gray-50"><tr><th class="p-3">تاريخ الاستحقاق</th><th class="p-3">البند</th><th class="p-3">المبلغ</th><th class="p-3">الإجراءات</th></tr></thead>
+                            <tbody>
+                                ${duePayments.length > 0 ? duePayments.map(f => `
+                                <tr class="border-b"><td class="p-3 font-semibold">${f.dueDate}</td><td class="p-3">${f.statement} <span class="text-xs text-gray-500">(${f.landName})</span></td><td class="p-3 font-bold">${f.total.toLocaleString()} ج.م</td><td class="p-3 text-center"><button data-id="${f.id}" class="invoice-details-btn text-gray-500 hover:text-green-600 p-1"><i data-lucide="file-text" class="w-5 h-5"></i></button><button class="pay-now-btn bg-green-600 text-white px-3 py-1 rounded-md text-xs font-bold hover:bg-green-700 ml-2">ادفع الآن</button></td></tr>
+                                `).join('') : `<tr><td colspan="4" class="text-center p-4 text-gray-500">لا توجد مستحقات حالية.</td></tr>`}
+                            </tbody>
+                        </table>
+                    </div>`;
+                },
+                arrears: () => {
+                    const arrearsPayments = allFinancials.filter(f => f.status === 'مستحق' && new Date(f.dueDate) < CURRENT_DATE).sort((a,b) => new Date(a.dueDate) - new Date(b.dueDate));
+                     return `
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-right">
+                            <thead class="text-gray-500 bg-gray-50"><tr><th class="p-3">البند</th><th class="p-3">أيام التأخير</th><th class="p-3">غرامة</th><th class="p-3">الإجمالي</th><th class="p-3">الإجراءات</th></tr></thead>
+                            <tbody>
+                                ${arrearsPayments.length > 0 ? arrearsPayments.map(f => {
+                                    const daysLate = Math.max(0, Math.floor((CURRENT_DATE - new Date(f.dueDate)) / (1000 * 60 * 60 * 24)));
+                                    const fine = (f.total * INTEREST_RATE * daysLate) / 365;
+                                    const totalToPay = f.total + fine;
+                                    return `
+                                    <tr class="border-b bg-red-50"><td class="p-3">${f.statement} <span class="text-xs text-gray-500">(${f.landName})</span></td><td class="p-3 font-bold text-center text-red-600">${daysLate}</td><td class="p-3 font-bold text-red-600">${fine.toFixed(2)} ج.م</td><td class="p-3 font-extrabold text-blue-700">${totalToPay.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} ج.م</td><td class="p-3 text-center"><button data-id="${f.id}" class="invoice-details-btn text-gray-500 hover:text-green-600 p-1"><i data-lucide="file-text" class="w-5 h-5"></i></button><button class="pay-now-btn bg-red-600 text-white px-3 py-1 rounded-md text-xs font-bold hover:bg-red-700 ml-2">ادفع الآن</button></td></tr>
+                                `}).join('') : `<tr><td colspan="5" class="text-center p-4 text-gray-500">لا توجد متأخرات.</td></tr>`}
+                            </tbody>
+                        </table>
+                    </div>`;
+                },
+                collected: () => {
+                     const paidPayments = allFinancials.filter(f => f.status === 'مدفوع').sort((a,b) => new Date(b.paymentDate) - new Date(a.paymentDate));
+                     return `
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-right">
+                            <thead class="text-gray-500 bg-gray-50"><tr><th class="p-3">تاريخ السداد</th><th class="p-3">البند</th><th class="p-3">المبلغ</th><th class="p-3"></th></tr></thead>
+                            <tbody>
+                                ${paidPayments.length > 0 ? paidPayments.map(f => `
+                                <tr class="border-b"><td class="p-3 font-semibold">${f.paymentDate}</td><td class="p-3">${f.statement} <span class="text-xs text-gray-500">(${f.landName})</span></td><td class="p-3 font-bold">${f.total.toLocaleString()} ج.م</td><td class="p-3 text-center"><button data-id="${f.id}" class="invoice-details-btn text-gray-500 hover:text-green-600 p-1"><i data-lucide="file-text" class="w-5 h-5"></i></button></td></tr>
+                                `).join('') : `<tr><td colspan="4" class="text-center p-4 text-gray-500">لا توجد مدفوعات مسجلة.</td></tr>`}
+                            </tbody>
+                        </table>
+                    </div>`;
+                },
+                next: () => {
+                    const nextPayment = allFinancials.filter(f => f.status === 'مستحق').sort((a,b) => new Date(a.dueDate) - new Date(b.dueDate))[0];
+                    return nextPayment ? `
+                    <div class="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-lg">
+                        <h4 class="font-bold text-lg text-blue-800">الدفعة القادمة</h4>
+                        <p class="mt-2 font-bold text-3xl">${nextPayment.total.toLocaleString()} ج.م</p>
+                        <p class="text-gray-600">${nextPayment.statement} (${nextPayment.landName})</p>
+                        <p class="text-sm text-gray-500 mt-1">تاريخ الاستحقاق: <span class="font-semibold">${nextPayment.dueDate}</span></p>
+                    </div>
+                    ` : `<p class="text-center text-gray-500 py-8">لا توجد دفعات قادمة مجدولة.</p>`;
+                },
+                notices: () => {
+                    return `
+                    <div class="space-y-4">
+                        ${AppData.financialNotices.length > 0 ? AppData.financialNotices.map(n => `
+                        <div class="flex items-start gap-x-4 p-4 border rounded-lg ${!n.read ? 'bg-yellow-50 border-yellow-200' : 'bg-gray-50'}">
+                            <div class="mt-1 p-2 bg-yellow-100 rounded-full"><i data-lucide="alert-triangle" class="w-5 h-5 text-yellow-600"></i></div>
+                            <div>
+                                <p class="font-semibold">${n.notice}</p>
+                                <p class="text-sm text-gray-500">${new Date(n.date).toLocaleDateString('ar-EG')} - بخصوص: ${n.landName}</p>
+                            </div>
+                        </div>
+                        `).join('') : `<p class="text-center text-gray-500 py-8">لا توجد إنذارات مالية.</p>`}
+                    </div>`;
+                }
+            };
+
+            function renderTabContent(tabId) {
+                if (contentContainer && FinancialTabs[tabId]) {
+                    contentContainer.innerHTML = FinancialTabs[tabId]();
+                    lucide.createIcons();
+                    tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === tabId));
+                }
+            }
+
+            tabs.forEach(tab => tab.addEventListener('click', () => renderTabContent(tab.dataset.tab)));
+            renderTabContent('due'); // Initial render
+        }
+        
+        function setupLandManagementPage(params) {
+            const land = AppData.lands.find(l => l.id === params.id);
+            if (!land) return;
+
+            const tabs = document.querySelectorAll('.management-tab');
+            const contentContainer = document.getElementById('land-management-content');
+            if (!tabs.length || !contentContainer) return;
+
+            const LandTabs = {
+                applications: (land) => `
+                    <div class="bg-white p-6 rounded-lg shadow-sm">
+                        <h3 class="text-xl font-bold text-gray-800 mb-4">طلبات التقديم للأرض</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm text-right">
+                                <thead class="text-gray-500 bg-gray-50">
+                                    <tr>
+                                        <th class="p-3">#</th>
+                                        <th class="p-3">اسم الطلب</th>
+                                        <th class="p-3">النوع</th>
+                                        <th class="p-3">تاريخ التقديم</th>
+                                        <th class="p-3 text-center">الحالة</th>
+                                        <th class="p-3 text-center">الإجراء</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${land.applications.map(app => `
+                                        <tr class="border-b">
+                                            <td class="p-3 font-semibold">${app.id}</td>
+                                            <td class="p-3 font-semibold">${app.name}</td>
+                                            <td class="p-3">${app.type}</td>
+                                            <td class="p-3">${app.date}</td>
+                                            <td class="p-3 text-center">
+                                                <span class="status-badge ${app.status === 'مقبول' ? 'status-approved' : 'status-pending'}">${app.status}</span>
+                                            </td>
+                                            <td class="p-3 text-center">
+                                                <button data-land-id="${land.id}" data-app-id="${app.id}" class="view-app-details-btn text-green-600 hover:underline font-bold text-xs">عرض التفاصيل</button>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>`,
+                financials: (land) => `<div class="bg-white p-6 rounded-lg shadow-sm"><h3 class="text-xl font-bold text-gray-800 mb-4">كشف الحساب المالي للأرض</h3><div class="overflow-x-auto"><table class="w-full text-sm text-right"><thead class="text-gray-500 bg-gray-50"><tr><th class="p-3">البيان</th><th class="p-3">تاريخ الاستحقاق</th><th class="p-3">تاريخ السداد</th><th class="p-3">المبلغ</th><th class="p-3 text-center">الحالة</th><th class="p-3"></th></tr></thead><tbody>${land.financials.map(f => `<tr class="border-b"><td class="p-3 font-semibold">${f.statement}</td><td class="p-3">${f.dueDate}</td><td class="p-3">${f.paymentDate || '-'}</td><td class="p-3 font-bold">${f.total.toLocaleString()} ج.م</td><td class="p-3 text-center"><span class="status-badge ${f.status === 'مدفوع' ? 'status-paid' : 'status-due'}">${f.status}</span></td><td class="p-3">${f.status === 'مستحق' ? '<button class="pay-now-btn bg-red-600 text-white px-3 py-1 rounded-md text-xs font-bold hover:bg-red-700">ادفع الآن</button>' : ''}</td></tr>`).join('')}</tbody></table></div></div>`,
+                documents: (land) => `<div class="bg-white p-6 rounded-lg shadow-sm"><h3 class="text-xl font-bold text-gray-800 mb-4">مستندات الأرض</h3><div class="overflow-x-auto"><table class="w-full text-sm text-right"><thead class="text-gray-500 bg-gray-50"><tr><th class="p-3">اسم المستند</th><th class="p-3">تاريخ الرفع</th><th class="p-3 text-center">الحالة</th><th class="p-3 text-center">الإجراءات</th></tr></thead><tbody>${(land.documents && land.documents.length > 0) ? land.documents.map(doc => `<tr class="border-b"><td class="p-3 font-semibold">${doc.name}</td><td class="p-3">${doc.uploadDate || '-'}</td><td class="p-3 text-center"><span class="status-badge ${doc.status === 'تم التحقق' ? 'status-approved' : 'status-rejected'}">${doc.status}</span></td><td class="p-3 text-center">${doc.status === 'مطلوب' ? '<button class="upload-now-btn text-green-600 hover:underline font-bold">رفع الآن</button>' : '<button class="view-doc-btn text-gray-400 hover:text-green-600 p-1"><i data-lucide="eye"></i></button>'}</td></tr>`).join('') : '<tr><td colspan="4" class="text-center p-4 text-gray-500">لا توجد مستندات لهذه الأرض.</td></tr>'}</tbody></table></div></div>`,
+                requests: (land) => `<div class="bg-white p-6 rounded-lg shadow-sm"><h3 class="text-xl font-bold text-gray-800 mb-4">الطلبات الإدارية</h3>${land.adminRequests.length > 0 ? `<div class="space-y-4">${land.adminRequests.map(req => `<div class="border rounded-lg p-4 flex justify-between items-center ${req.status === 'pending' ? 'bg-yellow-50' : 'bg-green-50'}"><div><p class="font-bold text-gray-800">${req.title}</p><p class="text-sm text-gray-500">خاص بـ: ${req.for} ${req.type === 'payment' ? `| المبلغ: ${req.amount}` : ''}</p></div><div class="flex items-center gap-x-4"><span class="status-badge ${req.status === 'pending' ? 'status-pending' : 'status-approved'}">${req.status === 'pending' ? 'معلق' : 'مكتمل'}</span>${req.status === 'pending' ? `<button data-request-type="${req.type}" class="admin-request-action-btn bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-blue-700">${req.actionText}</button>` : ''}</div></div>`).join('')}</div>` : '<p class="text-center text-gray-500 py-8">لا توجد طلبات إدارية حاليًا لهذه الأرض.</p>'}</div>`
+            };
+
+            function renderTabContent(tabId) {
+                if (contentContainer && LandTabs[tabId]) {
+                    contentContainer.innerHTML = LandTabs[tabId](land);
+                    lucide.createIcons();
+                    tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === tabId));
+                }
+            }
+
+            tabs.forEach(tab => tab.addEventListener('click', () => renderTabContent(tab.dataset.tab)));
+            renderTabContent('applications');
+        }
+        
+        function setupProfilePage() {
+            const form = document.getElementById('company-profile-form');
+            const editBtn = document.getElementById('edit-profile-btn');
+            if (!editBtn || !form) return;
+
+            editBtn.addEventListener('click', () => {
+                const isEditing = form.classList.contains('is-editing');
+                const editBtnText = document.getElementById('edit-btn-text');
+                const icon = editBtn.querySelector('i');
+                
+                if (isEditing) {
+                    // Data is not saved directly. It's sent for review.
+                    form.classList.remove('is-editing');
+                    
+                    editBtnText.textContent = "تعديل البيانات";
+                    editBtn.classList.replace('bg-blue-600', 'bg-green-600');
+                    lucide.createIcons({ nodes: [icon], attrs: { 'data-lucide': 'edit-3' } });
+                    
+                    showToast('تم إرسال التعديلات للمراجعة بنجاح.');
+                    addNotification('تم استلام طلب تحديث بيانات الملف الشخصي وجاري مراجعته.', 'info');
+
+                } else {
+                    // Enter edit mode
+                    form.classList.add('is-editing');
+                    editBtnText.textContent = "إرسال للمراجعة";
+                    editBtn.classList.replace('bg-green-600', 'bg-blue-600');
+                    lucide.createIcons({ nodes: [icon], attrs: { 'data-lucide': 'send' } });
+                }
+            });
+        }
+
+        function setupMessagesPage() {
+            function renderConversationList() {
+                const container = document.getElementById('conversation-list-container');
+                if (!container) return;
+                container.innerHTML = AppData.messages.map(convo => `
+                    <div class="conversation-item flex items-center gap-x-3 p-3 border-b cursor-pointer hover:bg-slate-100 ${convo.id === AppData.activeConversationId ? 'active' : ''}" data-id="${convo.id}">
+                        <img src="${convo.avatar}" class="h-10 w-10 rounded-full object-cover" alt="">
+                        <div class="flex-grow overflow-hidden">
+                            <div class="flex justify-between items-center"><p class="font-bold text-sm text-gray-800 truncate">${convo.participant}</p><p class="text-xs text-gray-400 flex-shrink-0">${convo.timestamp}</p></div>
+                            <div class="flex justify-between items-center"><p class="text-xs text-gray-500 truncate">${convo.lastMessage}</p>${convo.unread > 0 ? `<span class="h-5 w-5 text-xs text-white flex items-center justify-center bg-red-500 rounded-full">${convo.unread}</span>` : ''}</div>
+                        </div>
+                    </div>`).join('');
+                document.querySelectorAll('.conversation-item').forEach(item => item.addEventListener('click', (e) => {
+                    const id = parseInt(e.currentTarget.dataset.id);
+                    AppData.activeConversationId = id;
+                    const conversation = AppData.messages.find(c => c.id === id);
+                    if (conversation) conversation.unread = 0;
+                    renderConversationList();
+                    renderActiveConversation(id);
+                }));
+            }
+            function renderActiveConversation(id) {
+                const container = document.getElementById('message-view-panel');
+                const conversation = AppData.messages.find(c => c.id === id);
+                if (!container || !conversation) return;
+                container.innerHTML = `
+                    <div class="p-4 border-b flex items-center gap-x-3"><img src="${conversation.avatar}" class="h-10 w-10 rounded-full object-cover" alt=""><div><p class="font-bold text-gray-800">${conversation.participant}</p><p class="text-xs text-green-600">متصل الآن</p></div></div>
+                    <div id="message-history" class="flex-grow p-4 overflow-y-auto space-y-4">${conversation.history.map(msg => `<div class="flex ${msg.sender === 'me' ? 'justify-end' : 'justify-start'}"><div class="flex gap-2 max-w-[80%]">${msg.sender === 'other' ? `<img src="${conversation.avatar}" class="h-6 w-6 rounded-full self-end" alt="">` : ''}<div><div class="message-bubble-${msg.sender} p-3 rounded-lg text-sm">${msg.text}</div><p class="text-xs text-gray-400 mt-1 px-1 ${msg.sender === 'me' ? 'text-right' : 'text-left'}">${msg.time}</p></div></div></div>`).join('')}</div>
+                    <div class="p-4 border-t bg-white"><form id="message-form" class="flex items-center gap-x-2"><input type="text" id="message-input" placeholder="اكتب رسالتك هنا..." class="w-full bg-slate-100 border-none rounded-lg p-3 text-sm focus:ring-2 focus:ring-green-500" autocomplete="off"><button type="submit" class="bg-green-600 text-white p-3 rounded-lg hover:bg-green-700 flex-shrink-0"><i data-lucide="send-horizontal"></i></button></form></div>`;
+                lucide.createIcons();
+                const messageHistory = document.getElementById('message-history');
+                messageHistory.scrollTop = messageHistory.scrollHeight;
+                document.getElementById('message-form').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const input = document.getElementById('message-input');
+                    const text = input.value.trim();
+                    if (text) {
+                        const newMsg = { sender: 'me', text: text, time: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute:'2-digit' }) };
+                        conversation.history.push(newMsg);
+                        conversation.lastMessage = text;
+                        conversation.timestamp = 'الآن';
+                        input.value = '';
+                        renderActiveConversation(id);
+                        renderConversationList();
+                    }
+                });
+            }
+            renderConversationList();
+            if(AppData.activeConversationId) renderActiveConversation(AppData.activeConversationId);
+            
+            const newMessageBtn = document.getElementById('new-message-btn');
+            if(newMessageBtn) {
+                newMessageBtn.addEventListener('click', showNewMessageModal);
+            }
+        }
+
+        function showNewMessageModal() {
+            const content = `<div class="modal fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 p-4 opacity-0" onclick="closeModal()">
+                <div class="modal-content bg-white rounded-lg shadow-2xl w-full max-w-lg transform scale-95" onclick="event.stopPropagation()">
+                    <div class="p-5 border-b flex justify-between items-center"><h3 class="text-xl font-bold text-gray-800">رسالة جديدة</h3><button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><i data-lucide="x"></i></button></div>
+                    <form id="new-message-form" class="p-6 space-y-4">
+                        <div>
+                            <label for="recipient-select" class="font-semibold text-sm text-gray-700">إلى:</label>
+                            <select id="recipient-select" class="w-full mt-1 p-2 border rounded-lg bg-white">
+                                <option>الدعم الفني</option>
+                                <option>الإدارة المالية</option>
+                                <option>إدارة الأراضي</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="message-body" class="font-semibold text-sm text-gray-700">الرسالة:</label>
+                            <textarea id="message-body" rows="5" class="w-full mt-1 p-2 border rounded-lg" placeholder="اكتب نص رسالتك..." required></textarea>
+                        </div>
+                        <div class="pt-4 flex justify-end">
+                            <button type="submit" class="bg-green-600 text-white px-8 py-2 rounded-lg font-bold hover:bg-green-700">إرسال</button>
+                        </div>
+                    </form>
+                </div>
+            </div>`;
+            openModal(content);
+            document.getElementById('new-message-form').addEventListener('submit', handleNewMessageSubmit);
+        }
+
+        function handleNewMessageSubmit(e) {
+            e.preventDefault();
+            const recipient = document.getElementById('recipient-select').value;
+            const body = document.getElementById('message-body').value.trim();
+            if (!body) return;
+
+            let conversation = AppData.messages.find(c => c.participant === recipient);
+            const newMsg = { sender: 'me', text: body, time: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute:'2-digit' }) };
+
+            if (conversation) {
+                conversation.history.push(newMsg);
+                conversation.lastMessage = body;
+                conversation.timestamp = 'الآن';
+                conversation.unread = 0;
+            } else {
+                const departmentAvatars = {
+                    'الدعم الفني': 'https://placehold.co/100x100/3b82f6/FFFFFF?text=TS',
+                    'الإدارة المالية': 'https://placehold.co/100x100/16a34a/FFFFFF?text=FA',
+                    'إدارة الأراضي': 'https://placehold.co/100x100/f97316/FFFFFF?text=LA'
+                };
+                conversation = {
+                    id: AppData.messages.length + 1,
+                    participant: recipient,
+                    avatar: departmentAvatars[recipient],
+                    lastMessage: body,
+                    timestamp: 'الآن',
+                    unread: 0,
+                    history: [newMsg]
+                };
+                AppData.messages.push(conversation);
+            }
+            
+            AppData.activeConversationId = conversation.id;
+            closeModal();
+            showToast(`تم إرسال رسالتك إلى ${recipient}.`);
+            if (window.location.hash === '#messages') {
+                renderPage('messages');
+            } else {
+                window.location.hash = '#messages';
+            }
+        }
+        
+        function handleFileUpload(e) {
+            if (!e.target.files || e.target.files.length === 0) return;
+            const file = e.target.files[0];
+            
+            const newDoc = {
+                name: file.name,
+                uploadDate: new Date().toLocaleDateString('ar-EG'),
+                status: 'قيد المراجعة'
+            };
+
+            AppData.generalDocuments.unshift(newDoc);
+            renderPage('documents');
+            showToast(`تم رفع المستند "${file.name}" بنجاح.`);
+            e.target.value = '';
+        }
+
+        function showInvoiceModal(payment) {
+            if (!payment) return;
+            const content = `
+            <div class="modal fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 p-4" onclick="closeModal()">
+                <div class="modal-content bg-white rounded-lg shadow-2xl w-full max-w-2xl transform" onclick="event.stopPropagation()">
+                    <div id="invoice-modal-content" class="p-8">
+                        <div class="flex justify-between items-start">
+                             <div>
+                                <h3 class="text-2xl font-bold text-gray-800">تفاصيل السداد: ${payment.id.toUpperCase()}</h3>
+                                <p class="text-sm text-gray-500">${payment.landName}</p>
+                             </div>
+                             <div class="text-left">
+                                <p class="font-bold">شركة الوادي للتنمية</p>
+                                <p class="text-sm text-gray-600">صندوق استصلاح الأراضي</p>
+                             </div>
+                        </div>
+                        <div class="mt-4 p-4 rounded-lg ${payment.status === 'مدفوع' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">
+                            <p class="font-bold">حالة الإيصال: ${payment.status === 'مدفوع' ? 'تم السداد' : 'مستحق'}</p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-8 mt-6 text-sm">
+                            <div class="space-y-4 p-4 bg-slate-50 rounded-lg">
+                                <h4 class="font-bold text-md mb-2 border-b pb-2">ملخص السداد</h4>
+                                <div class="flex justify-between"><span class="text-gray-500">تاريخ الاستحقاق:</span><span class="font-bold">${payment.dueDate}</span></div>
+                                <div class="flex justify-between"><span class="text-gray-500">تاريخ التحصيل:</span><span class="font-bold">${payment.paymentDate || '-'}</span></div>
+                                <div class="flex justify-between"><span class="text-gray-500">المبلغ الأصلي:</span><span class="font-bold">${payment.total.toLocaleString()} ج.م</span></div>
+                                <div class="flex justify-between"><span class="text-gray-500">المبلغ المحصل:</span><span class="font-bold">${payment.status === 'مدفوع' ? payment.total.toLocaleString() : '0.00'} ج.م</span></div>
+                            </div>
+                             <div class="space-y-4 p-4 bg-slate-50 rounded-lg">
+                                <h4 class="font-bold text-md mb-2 border-b pb-2">تفاصيل الدفعة</h4>
+                                <div class="flex justify-between"><span class="text-gray-500">البند:</span><span class="font-bold">${payment.statement}</span></div>
+                                <div class="flex justify-between"><span class="text-gray-500">طريقة الدفع:</span><span class="font-bold">${payment.paymentDate ? 'تحويل بنكي' : '-'}</span></div>
+                                <div class="flex justify-between"><span class="text-gray-500">غرامة مطبقة:</span><span class="font-bold">لا</span></div>
+                            </div>
+                        </div>
+                    </div>
+                     <div class="p-4 bg-gray-50 border-t flex justify-end">
+                        <button id="print-invoice-btn" class="bg-green-600 text-white px-5 py-2 rounded-lg font-bold hover:bg-green-700 flex items-center gap-x-2"><i data-lucide="printer"></i>طباعة</button>
+                    </div>
+                </div>
+            </div>`;
+            openModal(content);
+            document.getElementById('print-invoice-btn').addEventListener('click', () => window.print());
+        }
+
+        function getStepperHTML(status) {
+            // This function generates the stepper HTML based on the application status.
+            // Currently, it only shows the state for "قيد المراجعة" as per the user's image.
+            if (status === 'قيد المراجعة') {
+                return `
+                <div class="w-full pt-8 pb-4">
+                    <h4 class="text-lg font-bold text-gray-800 mb-10 text-center">مراحل سير عمل الطلب</h4>
+                    <div class="relative">
+                        <!-- The connecting line -->
+                        <div class="absolute top-5 left-0 right-0 h-1 bg-gray-200"></div>
+                        <!-- Progress line -->
+                        <div class="absolute top-5 left-0 h-1 bg-green-600" style="width: 75%;"></div> 
+
+                        <div class="relative flex justify-between">
+                            <!-- Step 1: Done -->
+                            <div class="text-center w-24">
+                                <div class="w-10 h-10 mx-auto bg-green-600 rounded-full text-lg text-white flex items-center justify-center">
+                                    <i data-lucide="check" class="w-6 h-6"></i>
+                                </div>
+                                <p class="text-xs mt-2 font-semibold">تقديم الطلب</p>
+                            </div>
+                            <!-- Step 2: Done -->
+                            <div class="text-center w-24">
+                                <div class="w-10 h-10 mx-auto bg-green-600 rounded-full text-lg text-white flex items-center justify-center">
+                                    <i data-lucide="check" class="w-6 h-6"></i>
+                                </div>
+                                <p class="text-xs mt-2 font-semibold">المراجعة الفنية</p>
+                            </div>
+                            <!-- Step 3: Active -->
+                            <div class="text-center w-24">
+                                <div class="w-10 h-10 mx-auto bg-blue-600 rounded-full text-lg text-white flex items-center justify-center ring-4 ring-blue-200">
+                                    <span class="animate-pulse">3</span>
+                                </div>
+                                <p class="text-xs mt-2 font-semibold text-blue-600">المراجعة المالية</p>
+                            </div>
+                            <!-- Step 4: Pending -->
+                            <div class="text-center w-24">
+                                <div class="w-10 h-10 mx-auto bg-gray-300 rounded-full text-lg text-gray-600 flex items-center justify-center">
+                                    <span>4</span>
+                                </div>
+                                <p class="text-xs mt-2 font-semibold text-gray-500">قرار المحافظ</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                `;
+            }
+            return ''; // Return empty string if status doesn't require a stepper
+        }
+
+        function showApplicationDetailsModal(app) {
+            if (!app) return;
+            const stepperHTML = getStepperHTML(app.status);
+
+            const content = `
+            <div class="modal fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 p-4 opacity-0" onclick="closeModal()">
+                <div class="modal-content bg-white rounded-lg shadow-2xl w-full max-w-3xl transform scale-95" onclick="event.stopPropagation()">
+                    <div class="p-5 border-b flex justify-between items-center">
+                        <h3 class="text-xl font-bold text-gray-800">تفاصيل الطلب: ${app.id}</h3>
+                        <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><i data-lucide="x"></i></button>
+                    </div>
+                    <div class="p-6">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mb-6">
+                            <div><span class="font-semibold text-gray-500">اسم الطلب:</span><p class="font-bold text-gray-800">${app.name}</p></div>
+                            <div><span class="font-semibold text-gray-500">نوع الطلب:</span><p class="font-bold text-gray-800">${app.type}</p></div>
+                            <div><span class="font-semibold text-gray-500">تاريخ التقديم:</span><p class="font-bold text-gray-800">${app.date}</p></div>
+                        </div>
+                        
+                        ${stepperHTML}
+
+                        <div class="mt-6 p-4 bg-slate-50 rounded-lg">
+                            <h4 class="font-bold text-md mb-2">ملاحظات الطلب</h4>
+                            <p class="text-sm text-gray-600">
+                                ${app.status === 'قيد المراجعة' ? 'الطلب حاليًا في مرحلة المراجعة المالية من قبل الإدارة المختصة. سيتم إشعاركم بأي تحديثات.' : (app.status === 'مقبول' ? 'تمت الموافقة على هذا الطلب.' : 'لا توجد ملاحظات حالية على هذا الطلب.')}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+            openModal(content);
+        }
+
+        // --- GLOBAL EVENT LISTENERS ---
+        window.addEventListener('hashchange', handleNavigation);
+        window.addEventListener('DOMContentLoaded', () => {
+            handleNavigation();
+            updateNotifications();
+        });
+
+        DOM.notificationBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            DOM.notificationDropdown.classList.toggle('hidden');
+        });
+        document.addEventListener('click', (e) => {
+            if (DOM.notificationBtn && !DOM.notificationBtn.contains(e.target) && DOM.notificationDropdown && !DOM.notificationDropdown.contains(e.target)) {
+                DOM.notificationDropdown.classList.add('hidden');
+            }
+        });
+        
+        DOM.mainContent.addEventListener('click', e => {
+            if (e.target.closest('#upload-doc-btn') || e.target.closest('.upload-now-btn')) {
+                DOM.fileUploader.click();
+            }
+            const invoiceBtn = e.target.closest('.invoice-details-btn');
+            if (invoiceBtn) {
+                const paymentId = invoiceBtn.dataset.id;
+                const allFinancials = AppData.lands.flatMap(land => land.financials.map(f => ({...f, landName: land.name})));
+                const payment = allFinancials.find(f => f.id === paymentId);
+                showInvoiceModal(payment);
+            }
+            const appDetailsBtn = e.target.closest('.view-app-details-btn');
+            if (appDetailsBtn) {
+                const { landId, appId } = appDetailsBtn.dataset;
+                const land = AppData.lands.find(l => l.id === landId);
+                const app = land?.applications.find(a => a.id === appId);
+                if (app) {
+                    showApplicationDetailsModal(app);
+                }
+            }
+        });
+
+        DOM.fileUploader.addEventListener('change', handleFileUpload);
+        
+        // --- INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+        });
+
+    </script>
+</body>
+</html>
